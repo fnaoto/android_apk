@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require File.expand_path(File.join(File.dirname(__FILE__), "..", "spec_helper"))
-
 describe AndroidApk::ResourceFinder do
   describe "#resolve_icons_in_arsc" do
     subject { AndroidApk::ResourceFinder.resolve_icons_in_arsc(apk_filepath: apk_filepath, default_icon_path: default_icon_path) }

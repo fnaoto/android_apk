@@ -11,7 +11,7 @@ require_relative './android_apk/resource_finder'
 class AndroidApk
   FALLBACK_DPI = 65534.freeze
   ADAPTIVE_ICON_SDK = 26.freeze
-  ADAPTIVE_ICON_DENSITY = "anydpi-v26".freeze
+
   DEFAULT_RESOURCE_CONFIG = "(default)".freeze # very special config
 
   # Dump result which was parsed manually
@@ -178,6 +178,13 @@ class AndroidApk
     return apk
   end
 
+  def initialize
+    self.adaptive_icon = false
+    self.backward_compatible_adaptive_icon = false
+    self.verified = false
+    self.test_only = false
+  end
+
   # @deprecated no longer used
   # Get an application icon file of this apk file.
   #
@@ -215,11 +222,10 @@ class AndroidApk
       FileUtils.mkdir_p(File.dirname(output_to))
 
       Zip::File.open(self.filepath) do |zip_file|
-        content = zip_file.find_entry(icon)&.get_input_stream&.read
-        return nil if content.nil?
+        entry = zip_file.find_entry(icon) or return nil
 
         File.open(output_to, "wb") do |f|
-          f.write(content)
+          f.write(zip_file.read(entry))
         end
       end
 
@@ -289,6 +295,10 @@ class AndroidApk
   # @return [Boolean, nil] this apk is signed if true, otherwise not signed.
   def signed?
     !signature.nil?
+  end
+
+  def adaptive_icon_density
+    min_sdk_version.to_i >= 26 ? "anydpi" : "anydpi-v26"
   end
 
   # workaround for https://code.google.com/p/android/issues/detail?id=160847
@@ -403,21 +413,27 @@ class AndroidApk
   end
 
   def self.read_adaptive_icon(apk, filepath)
-    return unless apk.icon_path_hash[ADAPTIVE_ICON_DENSITY]&.end_with?(".xml")
+    # candidate
+    adaptive_icon_path = apk.icon or return
+
+    return unless adaptive_icon_path.end_with?(".xml")
+
+    png_dpi = SUPPORTED_DPI_NAMES.find { |d| apk.icon_path_hash[d]&.end_with?(".png") }
+
+    # at least one png icon is required if min sdk version doesn't support adaptive icon
+    if apk.min_sdk_version.to_i < ADAPTIVE_ICON_SDK && png_dpi.nil?
+      return
+    end
 
     # invalid xml file may throw an error
-    apk.adaptive_icon = !!Zip::File.open(filepath) do |zip_file|
-      zip_file.find_entry(apk.icon)&.get_input_stream&.read&.include?("adaptive-icon")
-    end
-  rescue StandardError => _e
-    apk.adaptive_icon = false # ensure
-  ensure
-    if apk.min_sdk_version.to_i < ADAPTIVE_ICON_SDK && apk.adaptive_icon
-      _, adaptive_icon_path = SUPPORTED_DPI_NAMES.find { |d| apk.icon_path_hash[d]&.end_with?(".png") }
-
-      Zip::File.open(filepath) do |zip_file|
-        apk.backward_compatible_adaptive_icon = !zip_file.find_entry(adaptive_icon_path).nil?
+    Zip::File.open(filepath) do |zip_file|
+      apk.adaptive_icon = zip_file.find_entry(adaptive_icon_path)&.get_input_stream do |entry|
+        !!entry.read.include?("adaptive-icon")
       end
+
+      break if apk.min_sdk_version.to_i >= ADAPTIVE_ICON_SDK
+
+      apk.backward_compatible_adaptive_icon = apk.adaptive_icon && zip_file.find_entry(apk.icon_path_hash[png_dpi]) != nil
     end
   end
 end

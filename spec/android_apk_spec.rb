@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require File.expand_path(File.dirname(__FILE__) + "/spec_helper")
-
 describe "AndroidApk" do
   subject { AndroidApk.analyze(apk_filepath) }
 
@@ -79,6 +77,7 @@ describe "AndroidApk" do
       end
     end
 
+    # space check
     %w(sample.apk sample\ with\ space.apk).each do |apk_name|
       context "#{apk_name} which is a very simple sample" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "other", apk_name) }
@@ -158,387 +157,189 @@ describe "AndroidApk" do
       end
     end
 
+    context "unsigned.apk " do
+      let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "unsigned.apk") }
+
+      include_examples :analyzable
+
+      it "should not be signed" do
+        expect(subject.signed?).to be_falsey
+      end
+
+      it "should not expose signature" do
+        expect(subject.signature).to be_nil
+      end
+
+      it "should not be installable" do
+        expect(subject.installable?).to be_falsey
+      end
+
+      it "should have unsigned state" do
+        expect(subject.uninstallable_reasons).to include(AndroidApk::Reason::UNSIGNED)
+      end
+    end
+
     describe "resource aware specs" do
-      shared_examples_for :assert_resource do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "resource", apk_name) }
-
-        include_examples :analyzable
-
-        it "should have multiple icons for each dimensions" do
-          expect(!subject.icons.empty?).to be_truthy
-        end
-
-        it "should have icon file" do
-          expect(subject.icon_file).not_to be_nil
-        end
-
-        it "should be installable" do
-          expect(subject.installable?).to be_truthy
-        end
-      end
-
-      shared_examples_for :common_assert_resource do
-        describe "png only icon" do
-          let(:apk_name) { "png_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-          end
-
-          it "should not be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_falsey
-          end
-        end
-
-        describe "png only icon in drawable directory" do
-          let(:apk_name) { "png_icon_in_drawable_only-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file anyway!" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-            expect(subject.icon_file(160, true)).not_to be_nil
-            expect(subject.icon_file(nil, true)).not_to be_nil
-          end
-
-          it "should not be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_falsey
-          end
-        end
-
-        describe "no icon" do
-          let(:apk_name) { "no_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          let(:apk_filepath) { File.join(FIXTURE_DIR, "resource", apk_name) }
-
-          include_examples :analyzable
-
-          it "should not have png icon file" do
-            expect(subject.icon_file(nil, true)).to be_nil
-          end
-
-          it "should not be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_falsey
-          end
-
-          it "should be installable" do
-            expect(subject.installable?).to be_truthy
-          end
-        end
-      end
-
-      context "min sdk is less than vector drawable supported sdk" do
-        let(:min_sdk) { "14" }
-
-        include_examples :common_assert_resource
-
-        describe "adaptive icon" do
-          let(:apk_name) { "adaptive_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-          end
-
-          it "should be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_truthy
-          end
-
-          it "should be backward compatible adaptive icon" do
-            expect(subject.backward_compatible_adaptive_icon?).to be_truthy
-          end
-        end
-
-        describe "misconfigured adaptive icon" do
-          let(:apk_name) { "misconfigured_adaptive_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should not have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).to be_nil
-          end
-
-          it "should be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_truthy
-          end
-
-          it "should not be backward compatible adaptive icon" do
-            expect(subject.backward_compatible_adaptive_icon?).to be_falsey
-          end
-        end
-      end
-
-      context "min sdk is less than adaptive icon supported sdk" do
-        let(:min_sdk) { "21" }
-
-        include_examples :common_assert_resource
-
-        describe "vd only icon" do
-          let(:apk_name) { "vd_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should not have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).to be_nil
-          end
-
-          it "should not be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_falsey
-          end
-        end
-
-        describe "vd and png icon" do
-          let(:apk_name) { "vd_and_png_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-          end
-
-          it "should not be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_falsey
-          end
-        end
-
-        describe "adaptive icon" do
-          let(:apk_name) { "adaptive_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-          end
-
-          it "should be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_truthy
-          end
-
-          it "should be backward compatible adaptive icon" do
-            expect(subject.backward_compatible_adaptive_icon?).to be_truthy
-          end
-        end
-
-        describe "misconfigured adaptive icon" do
-          let(:apk_name) { "misconfigured_adaptive_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should not have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).to be_nil
-          end
-
-          it "should be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_truthy
-          end
-
-          it "should not be backward compatible adaptive icon" do
-            expect(subject.backward_compatible_adaptive_icon?).to be_falsey
-          end
-        end
-      end
-
-      context "min sdk is greater than adaptive icon supported sdk" do
-        let(:min_sdk) { "26" }
-
-        include_examples :common_assert_resource
-
-        describe "vd and png icon" do
-          let(:apk_name) { "vd_and_png_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-          end
-
-          it "should not be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_falsey
-          end
-        end
-
-        describe "adaptive icon" do
-          let(:apk_name) { "adaptive_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should have png icon file" do
-            expect(subject.icon_file(subject.icons.keys.max, true)).not_to be_nil
-          end
-
-          it "should be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_truthy
-          end
-
-          it "should be backward compatible adaptive icon" do
-            expect(subject.backward_compatible_adaptive_icon?).to be_falsey
-          end
-        end
-
-        describe "misconfigured adaptive icon" do
-          let(:apk_name) { "misconfigured_adaptive_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-          include_examples :assert_resource
-
-          it "should not have png icon file" do
-            expect(subject.icon_file(nil, true)).to be_nil
-          end
-
-          it "should be adaptive icon" do
-            expect(subject.adaptive_icon?).to be_truthy
-          end
-
-          it "should not be backward compatible adaptive icon" do
-            expect(subject.backward_compatible_adaptive_icon?).to be_falsey
+      let(:apk_filepath) { File.join(FIXTURE_DIR, resource_dir, "apks-#{min_sdk}", apk_name) }
+
+      %w[resources new-resources].each do |res|
+        context "in #{res}" do
+          let(:resource_dir) { res }
+
+          %w[14 21 26].each do |sdk|
+            context "in apks-#{sdk}" do
+              let(:min_sdk) { sdk }
+
+              context "png in drawable-*dpi" do
+                let(:apk_name) { "drawablePngIconOnly.apk" }
+
+                it { expect(subject.available_png_icon).not_to be_nil }
+                it { expect(subject).not_to be_adaptive_icon }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject).to be_installable }
+
+                it {
+                  expect(subject.icon_path_hash).to include(
+                                                      "mdpi" => be_end_with(".png"),
+                                                      "hdpi" => be_end_with(".png"),
+                                                      "xhdpi" => be_end_with(".png"),
+                                                      "xxhdpi" => be_end_with(".png"),
+                                                      "xxxhdpi" => be_end_with(".png")
+                                                    )
+                }
+              end
+
+              context "png in mipmap-*api" do
+                let(:apk_name) { "mipmapPngIconOnly.apk" }
+
+                it { expect(subject.available_png_icon).not_to be_nil }
+                it { expect(subject).not_to be_adaptive_icon }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject).to be_installable }
+
+                it {
+                  expect(subject.icon_path_hash).to include(
+                                                      "mdpi" => be_end_with(".png"),
+                                                      "hdpi" => be_end_with(".png"),
+                                                      "xhdpi" => be_end_with(".png"),
+                                                      "xxhdpi" => be_end_with(".png"),
+                                                      "xxxhdpi" => be_end_with(".png")
+                                                    )
+                }
+              end
+
+              context "adaptive icon with png icon" do
+                let(:apk_name) { "adaptiveIconWithPng.apk" }
+
+                it { expect(subject.available_png_icon).not_to be_nil }
+                it { expect(subject).to be_adaptive_icon }
+                # adaptive icon doesn't need backward compatibility if min sdk version is equal to or newer than 26
+                it { expect(subject.backward_compatible_adaptive_icon?).to eq(sdk.to_i < 26) }
+                it { expect(subject).to be_installable }
+
+                it {
+                  expect(subject.icon_path_hash).to include(
+                                                      "mdpi" => be_end_with(".png"),
+                                                      "hdpi" => be_end_with(".png"),
+                                                      "xhdpi" => be_end_with(".png"),
+                                                      "xxhdpi" => be_end_with(".png"),
+                                                      "xxxhdpi" => be_end_with(".png")
+                                                    )
+                }
+              end
+
+              context "vector drawable with png icon" do
+                let(:apk_name) { "vectorDrawableWithPng.apk" }
+
+                it { expect(subject.available_png_icon).not_to be_nil }
+                it { expect(subject).not_to be_adaptive_icon }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject).to be_installable }
+              end
+
+              # unsupported for now
+
+              context "vector drawable icon only", skip: sdk.to_i < 21 do
+                # cannot create this apk since Lollipop
+                let(:apk_name) { "vectorDrawableIconOnly.apk" }
+
+                it { expect(subject.available_png_icon).to be_nil }
+                it { expect(subject).not_to be_adaptive_icon }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject).to be_installable }
+                it { expect(subject.icon_path_hash).not_to be_empty }
+              end
+
+              # edge cases
+
+              context "no icon" do
+                let(:apk_name) { "noIcon.apk" }
+
+                it { expect(subject.available_png_icon).to be_nil }
+                it { expect(subject).not_to be_adaptive_icon }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject.icon_path_hash).to be_empty }
+                it { expect(subject).to be_installable }
+              end
+
+              context "misconfigured adaptive icon" do
+                let(:apk_name) { "misconfiguredAdaptiveIcon.apk" }
+
+                it { expect(subject.available_png_icon).to be_nil }
+                # adaptive icon doesn't need a png icon if min sdk version is equal to or newer than 26
+                it { expect(subject.adaptive_icon?).to eq(sdk.to_i >= 26) }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject).to be_installable }
+              end
+
+              context "png only in drawable" do
+                let(:apk_name) { "drawablePngIconOnly.apk" }
+
+                it { expect(subject.available_png_icon).not_to be_nil }
+                it { expect(subject).not_to be_adaptive_icon }
+                it { expect(subject).not_to be_backward_compatible_adaptive_icon }
+                it { expect(subject).to be_installable }
+              end
+            end
           end
         end
       end
     end
 
     describe "signature aware specs" do
-      shared_examples_for :assert_signature do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "signature", apk_name) }
+      let(:signatures) {
+        {
+          "rsa" => "4ad4e4376face4e441a3b8802363a7f6c6b458ab",
+          "dsa" => "6a2dd3e16a3f05fc219f914734374065985273b3"
+        }
+      }
 
-        include_examples :analyzable
+      let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "apks-#{min_sdk}-v1-#{v1_enabled}-v2-#{v2_enabled}/#{signing}/app-#{signing}.apk") }
 
-        it "should have signature" do
-          expect(subject.signature).to eq(signature)
-        end
+      %w[rsa dsa].each do |sig_method|
+        context "signed with #{sig_method}" do
+          let(:signing) { sig_method }
+          let(:signature) { signatures[signing] }
 
-        it "should be signed" do
-          expect(subject.signed?).to be_truthy
-        end
+          %w[14 24].each do |sdk|
+            context "in apks-#{sdk}" do
+              let(:min_sdk) { sdk }
 
-        it "should be installable" do
-          expect(subject.installable?).to be_truthy
-        end
+              [
+                [true, true],
+                [true, false],
+                [false, true]
+              ].each do |v1, v2|
+                context "v1 signed? == #{v1} and v2 signed? == #{v2}" do
+                  let(:v1_enabled) { v1 }
+                  let(:v2_enabled) { v2 }
 
-        it "should have the expected min sdk version" do
-          expect(subject.sdk_version).to eq(min_sdk)
-        end
-
-        it "should not have unsigned state" do
-          expect(subject.uninstallable_reasons).not_to include(AndroidApk::Reason::UNSIGNED)
-        end
-      end
-
-      context "no signing" do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "signature", "png_icon-assembleUnsigned-v1-true-v2-true-min-14.apk") }
-
-        include_examples :analyzable
-
-        it "should not be signed" do
-          expect(subject.signed?).to be_falsey
-        end
-
-        it "should not expose signature" do
-          expect(subject.signature).to be_nil
-        end
-
-        it "should not be installable" do
-          expect(subject.installable?).to be_falsey
-        end
-
-        it "should have unsigned state" do
-          expect(subject.uninstallable_reasons).to include(AndroidApk::Reason::UNSIGNED)
-        end
-      end
-
-      context "rsa signing" do
-        let(:signature) { "4ad4e4376face4e441a3b8802363a7f6c6b458ab" }
-
-        context "min sdk is equal or greater than v2 scheme supported sdk" do
-          let(:min_sdk) { "24" }
-
-          context "v1 and v2 schemes" do
-            let(:apk_name) { "png_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v1 only" do
-            let(:apk_name) { "png_icon-assembleRsa-v1-true-v2-false-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v2 only" do
-            let(:apk_name) { "png_icon-assembleRsa-v1-false-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-        end
-
-        context "min sdk is less than v2 scheme supported sdk" do
-          let(:min_sdk) { "14" }
-
-          context "v1 and v2 schemes" do
-            let(:apk_name) { "png_icon-assembleRsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v1 only" do
-            let(:apk_name) { "png_icon-assembleRsa-v1-true-v2-false-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v2 only" do
-            let(:apk_name) { "png_icon-assembleRsa-v1-false-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-        end
-      end
-
-      context "dsa signing" do
-        let(:signature) { "6a2dd3e16a3f05fc219f914734374065985273b3" }
-
-        context "min sdk is equal or greater than v2 scheme supported sdk" do
-          let(:min_sdk) { "24" }
-
-          context "v1 and v2 schemes" do
-            let(:apk_name) { "png_icon-assembleDsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v1 only" do
-            let(:apk_name) { "png_icon-assembleDsa-v1-true-v2-false-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v2 only" do
-            let(:apk_name) { "png_icon-assembleDsa-v1-false-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-        end
-
-        context "min sdk is less than v2 scheme supported sdk" do
-          let(:min_sdk) { "14" }
-
-          context "v1 and v2 schemes" do
-            let(:apk_name) { "png_icon-assembleDsa-v1-true-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v1 only" do
-            let(:apk_name) { "png_icon-assembleDsa-v1-true-v2-false-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
-          end
-
-          context "v2 only" do
-            let(:apk_name) { "png_icon-assembleDsa-v1-false-v2-true-min-#{min_sdk}.apk" }
-
-            include_examples :assert_signature
+                  it { expect(subject.signature).to eq(signature) }
+                  it { expect(subject).to be_signed }
+                  it { expect(subject).to be_installable }
+                end
+              end
+            end
           end
         end
       end
