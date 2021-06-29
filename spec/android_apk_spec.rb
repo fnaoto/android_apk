@@ -5,8 +5,6 @@ require File.expand_path(File.dirname(__FILE__) + "/spec_helper")
 describe "AndroidApk" do
   subject { AndroidApk.analyze(apk_filepath) }
 
-  FIXTURE_DIR = File.join(File.dirname(__FILE__), "fixture")
-
   shared_examples_for :analyzable do
     it "should exist" do
       expect(File.exist?(apk_filepath)).to be_truthy
@@ -22,6 +20,10 @@ describe "AndroidApk" do
       expect { subject.icon_file }.not_to raise_exception
       expect { subject.icon_file(max_icon, false) }.not_to raise_exception
       expect { subject.icon_file(max_icon, true) }.not_to raise_exception
+    end
+
+    it "should not raise any error when getting an available png icon file" do
+      expect { subject.available_png_icon }.not_to raise_exception
     end
   end
 

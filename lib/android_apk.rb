@@ -6,8 +6,13 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
+require_relative './android_apk/resource_finder'
+
 class AndroidApk
-  ADAPTIVE_ICON_SDK = 26
+  FALLBACK_DPI = 65534.freeze
+  ADAPTIVE_ICON_SDK = 26.freeze
+  ADAPTIVE_ICON_DENSITY = "anydpi-v26".freeze
+  DEFAULT_RESOURCE_CONFIG = "(default)".freeze # very special config
 
   # Dump result which was parsed manually
   # @return [Hash] Return a parsed result of aapt dump
@@ -21,13 +26,21 @@ class AndroidApk
   # @return [Hash] Return a hash based on AndroidManifest.xml
   attr_accessor :labels
 
+  # @deprecated no longer used
   # Application icon's path
   # @return [String] Return a relative path of this apk's icon
   attr_accessor :icon
 
+  # @deprecated no longer used
   # Application icon paths for all densities
-  # @return [String] Return a hash of relative paths
+  # @return [Hash] Return a hash of relative paths
   attr_accessor :icons
+
+  # Application icon paths for all densities that are human readable names
+  # This value may contains anyapi-v<api_version>.
+  #
+  # @return [Hash] Return a hash of relative paths
+  attr_accessor :icon_path_hash
 
   # Package name of this apk
   # @return [String] Return a value which is defined in AndroidManifest.xml
@@ -95,6 +108,7 @@ class AndroidApk
   }.freeze
 
   SUPPORTED_DPIS = DPI_TO_NAME_MAP.keys.freeze
+  SUPPORTED_DPI_NAMES = DPI_TO_NAME_MAP.values.freeze
 
   module Reason
     UNVERIFIED = :unverified
@@ -140,12 +154,23 @@ class AndroidApk
     apk.target_sdk_version = vars["targetSdkVersion"]
 
     # icons and labels
-    apk.icons = {}
+    apk.icons = Hash.new # old
     apk.labels = {}
+
     vars.each_key do |k|
       apk.icons[Regexp.last_match(1).to_i] = vars[k] if k =~ /^application-icon-(\d+)$/
       apk.labels[Regexp.last_match(1)] = vars[k] if k =~ /^application-label-(\S+)$/
     end
+
+    # It seems the resources in the aapt's output doesn't mean it's available in resource.arsc
+    icons_in_arsc = ::AndroidApk::ResourceFinder.resolve_icons_in_arsc(
+      apk_filepath: filepath,
+      default_icon_path: vars["application"]["icon"]
+    )
+
+    apk.icon_path_hash = apk.icons.dup.transform_keys { |dpi|
+      DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
+    }.merge(icons_in_arsc)
 
     read_signature(apk, filepath)
     read_adaptive_icon(apk, filepath)
@@ -153,6 +178,7 @@ class AndroidApk
     return apk
   end
 
+  # @deprecated no longer used
   # Get an application icon file of this apk file.
   #
   # @param [Integer] dpi one of (see SUPPORTED_DPIS)
@@ -198,6 +224,35 @@ class AndroidApk
       end
 
       return nil unless File.exist?(output_to)
+
+      return File.new(output_to, "r")
+    end
+  end
+
+  def available_png_icon
+    dpi = AndroidApk::DPI_TO_NAME_MAP.keys.sort { |i| i }.find { |dpi|
+      icon_path_hash[AndroidApk::DPI_TO_NAME_MAP[dpi]]&.end_with?(".png")
+    }
+
+    return if dpi.nil?
+
+    png_path = icon_path_hash[AndroidApk::DPI_TO_NAME_MAP[dpi]]
+
+    Dir.mktmpdir do |dir|
+      output_to = File.join(dir, png_path)
+      FileUtils.mkdir_p(File.dirname(output_to))
+
+      Zip::File.open(self.filepath) do |zip_file|
+        content = zip_file.find_entry(png_path)&.get_input_stream&.read
+
+        next if content.nil?
+
+        File.open(output_to, "wb") do |f|
+          f.write(content)
+        end
+      end
+
+      break unless File.exist?(output_to)
 
       return File.new(output_to, "r")
     end
@@ -348,7 +403,7 @@ class AndroidApk
   end
 
   def self.read_adaptive_icon(apk, filepath)
-    return unless apk.icon.end_with?(".xml") && apk.icon.start_with?("res/mipmap-anydpi-v26/")
+    return unless apk.icon_path_hash[ADAPTIVE_ICON_DENSITY]&.end_with?(".xml")
 
     # invalid xml file may throw an error
     apk.adaptive_icon = !!Zip::File.open(filepath) do |zip_file|
@@ -357,8 +412,8 @@ class AndroidApk
   rescue StandardError => _e
     apk.adaptive_icon = false # ensure
   ensure
-    if apk.sdk_version.to_i < ADAPTIVE_ICON_SDK && apk.adaptive_icon
-      adaptive_icon_path = "res/mipmap-xxxhdpi-v4/#{File.basename(apk.icon).gsub(/\.xml\Z/, '.png')}"
+    if apk.min_sdk_version.to_i < ADAPTIVE_ICON_SDK && apk.adaptive_icon
+      _, adaptive_icon_path = SUPPORTED_DPI_NAMES.find { |d| apk.icon_path_hash[d]&.end_with?(".png") }
 
       Zip::File.open(filepath) do |zip_file|
         apk.backward_compatible_adaptive_icon = !zip_file.find_entry(adaptive_icon_path).nil?
