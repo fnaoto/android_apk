@@ -236,25 +236,25 @@ class AndroidApk
   end
 
   def available_png_icon
-    dpi = AndroidApk::DPI_TO_NAME_MAP.keys.sort { |i| i }.find { |dpi|
-      icon_path_hash[AndroidApk::DPI_TO_NAME_MAP[dpi]]&.end_with?(".png")
+    png_path = DPI_TO_NAME_MAP.keys.sort { |i| i }.lazy.map { |dpi|
+      icon_path_hash[DPI_TO_NAME_MAP[dpi]]
+    }.find { |path|
+      path&.end_with?(".png")
     }
 
-    return if dpi.nil?
-
-    png_path = icon_path_hash[AndroidApk::DPI_TO_NAME_MAP[dpi]]
+    return if png_path.nil?
 
     Dir.mktmpdir do |dir|
       output_to = File.join(dir, png_path)
       FileUtils.mkdir_p(File.dirname(output_to))
 
       Zip::File.open(self.filepath) do |zip_file|
-        content = zip_file.find_entry(png_path)&.get_input_stream&.read
+        entry = zip_file.find_entry(png_path)
 
-        next if content.nil?
+        next if entry.nil?
 
         File.open(output_to, "wb") do |f|
-          f.write(content)
+          f.write(zip_file.read(entry))
         end
       end
 
@@ -298,7 +298,7 @@ class AndroidApk
   end
 
   def adaptive_icon_density
-    min_sdk_version.to_i >= 26 ? "anydpi" : "anydpi-v26"
+    min_sdk_version.to_i >= ADAPTIVE_ICON_SDK ? "anydpi" : "anydpi-v26"
   end
 
   # workaround for https://code.google.com/p/android/issues/detail?id=160847
