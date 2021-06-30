@@ -17,11 +17,11 @@ class AndroidApk
         value_index = lines.index { |line| line.index(default_icon_path) } or return Hash.new
         resource_name = lines[value_index - 1].split(":")[1] or return Hash.new # e.g. mipmap/ic_launcher
 
-        start_index = lines.index { |line| line.lstrip.start_with?("spec resource ") && line.index(resource_name) }
+        start_index = lines.index { |line| line.index("spec resource ") && line.index(resource_name) }
 
         config_hash = {}
 
-        iterator = lines.drop(start_index + 1).map(&:lstrip).reject { |line| line.start_with?("spec ") || line.empty? }
+        lines = lines.drop(start_index + 1)
 
         # A target to find values is only one *type* block.
         #
@@ -32,22 +32,35 @@ class AndroidApk
         #       ... "<file path>"
 
         # lines that start with "spec" are already rejected
-        while iterator[0]&.start_with?("type ") == false do
-          line, *iterator = iterator
+        index = 0
+
+        while index < lines.size do
+
+          line = lines[index]
+          index += 1
+
+          break if line.index("type ")
 
           # drop until a config block will be found
-          next unless (config = line.match(/config (.+):/)[1])
+          next unless (config = line.match(/config\s+(?'dpi'.+):/)&.named_captures&.dig("dpi"))
 
-          while iterator[0]&.start_with?("config ") == false do
-            line, *iterator = iterator
+          while index < lines.size do
+            line = lines[index]
+            index += 1
+
+            if line.index("config ")
+              index -= 1
+              break
+            end
 
             # drop until a line contains <resource_name>
             next unless line.index(resource_name)
 
             # Next line contains the filepath and never contain a config block header
-            line, *iterator = iterator
+            line = lines[index]
+            index += 1
 
-            png_file_path = line.match(/"(.+)"/)[1] # never nil
+            png_file_path = line.match(/"(?'path'.+)"/)&.named_captures&.dig("path") # never nil
 
             config_hash[config] = png_file_path
           end

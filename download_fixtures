@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+trap cleanup SIGINT SIGTERM ERR EXIT
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+
+# default
+CIRCLE_PROJECT=DeployGate
+CIRCLE_REPO=deploygate-android-binary-catalog
+OUTPUT_DIR=spec/fixture
+
+usage() {
+  cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-f] -p param_value arg1 [arg2...]
+Download all artifacts of a workflow.
+Available options:
+-h, --help      Print this help and exit
+-o, --output    Output directory
+-p, --project   CircleCI project name
+-r, --repo      CircleCI repo name
+EOF
+  exit
+}
+
+cleanup() {
+  trap - SIGINT SIGTERM ERR EXIT
+  # script cleanup here
+}
+
+setup_colors() {
+  if [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
+    NOFORMAT='\033[0m' RED='\033[0;31m' GREEN='\033[0;32m' ORANGE='\033[0;33m' BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' YELLOW='\033[1;33m'
+  else
+    NOFORMAT='' RED='' GREEN='' ORANGE='' BLUE='' PURPLE='' CYAN='' YELLOW=''
+  fi
+}
+
+msg() {
+  echo >&2 -e "${1-}"
+}
+
+die() {
+  local msg=$1
+  local code=${2-1} # default exit status 1
+  msg "$msg"
+  exit "$code"
+}
+
+parse_params() {
+  # default values of variables set from params
+  flag=0
+  param=''
+
+  while :; do
+    case "${1-}" in
+    -h | --help) usage ;;
+    --no-color) NO_COLOR=1 ;;
+    -o | --output)
+      OUTPUT_DIR="${2-}"
+      shift
+      ;;
+    -p | --project)
+      CIRCLE_PROJECT="${2-}"
+      shift
+      ;;
+    -r | --repo)
+      CIRCLE_REPO="${2-}"
+      shift
+      ;;
+    -?*) die "Unknown option: $1" ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  args=("$@")
+
+  # check required params and arguments
+  [[ -z "${CIRCLE_PROJECT-}" ]] && die "Missing required parameter: project"
+  [[ -z "${CIRCLE_REPO-}" ]] && die "Missing required parameter: repo"
+  [[ -z "${OUTPUT_DIR-}" ]] && die "Missing required parameter: output"
+  [[ ${#args[@]} -eq 0 ]] && die "Missing script arguments"
+
+  return 0
+}
+
+parse_params "$@"
+setup_colors
+
+# script logic here
+
+jobs() {
+  local -r workflow="$1"
+
+  curl -X GET \
+    --url "https://circleci.com/api/v2/workflow/$workflow/job" \
+    -sSLf \
+    -H "Circle-Token: $CIRCLE_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json'
+}
+
+artifacts() {
+  local -r job="$1"
+
+  curl -X GET \
+    --url "https://circleci.com/api/v2/project/github/$CIRCLE_PROJECT/$CIRCLE_REPO/$job/artifacts" \
+    -sSLf \
+    -H "Circle-Token: $CIRCLE_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json'
+}
+
+export -f jobs
+export -f artifacts
+
+readonly workflow_id="${args[0]}"
+
+readonly jobs=($(jobs "$workflow_id" | jq -r '.items[] | .job_number'))
+
+mkdir -p "$OUTPUT_DIR"
+
+for job in "${jobs[@]}"; do
+  msg "Get artifacts from Job($job)"
+
+  while read path url; do
+    mkdir -p "$OUTPUT_DIR/$(dirname $path)"
+
+    msg "Download $url to $OUTPUT_DIR/$path"
+
+    curl -X GET \
+      --url "$url" \
+      -sSLf \
+      -H "Circle-Token: $CIRCLE_TOKEN" \
+      -o "$OUTPUT_DIR/$path"
+  done < <(artifacts "$job" | jq -r '.items | map(select(.url | endswith(".apk")))[] | .path + " " + .url')
+done
+
+git clean -Xf "$OUTPUT_DIR"
