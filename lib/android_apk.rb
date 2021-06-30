@@ -154,12 +154,15 @@ class AndroidApk
     apk.target_sdk_version = vars["targetSdkVersion"]
 
     # icons and labels
-    apk.icons = Hash.new # old
+    apk.icons = {} # old
     apk.labels = {}
 
     vars.each_key do |k|
-      apk.icons[Regexp.last_match(1).to_i] = vars[k] if k =~ /^application-icon-(\d+)$/
-      apk.labels[Regexp.last_match(1)] = vars[k] if k =~ /^application-label-(\S+)$/
+      if (m = k.match(/\Aapplication-icon-(\d+)\z/))
+        apk.icons[m[1].to_i] = vars[k]
+      elsif (m = k.match(/\Aapplication-label-(\S+)\z/))
+        apk.labels[m[1]] = vars[k]
+      end
     end
 
     # It seems the resources in the aapt's output doesn't mean it's available in resource.arsc

@@ -182,11 +182,11 @@ describe AndroidApk::ResourceFinder do
 
         it do
           is_expected.to match(
-                           "hdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "mdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "xhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "xxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "xxxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                           "hdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "mdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "xhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "xxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "xxxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                          )
         end
       end
@@ -196,11 +196,11 @@ describe AndroidApk::ResourceFinder do
 
         it do
           is_expected.to match(
-                           "hdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "mdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "xhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "xxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                           "xxxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                           "hdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "mdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "xhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "xxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                           "xxxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                          )
         end
       end
@@ -210,7 +210,7 @@ describe AndroidApk::ResourceFinder do
 
         it do
           is_expected.to match(
-                           "(default)" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                           "(default)" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                          )
         end
       end
@@ -227,12 +227,12 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to match(
-                             "anydpi-v26" => match(/res\/[a-zA-Z0-9]{2}.xml/),
-                             "hdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "mdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                             "anydpi-v26" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/),
+                             "hdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "mdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                            )
           end
         end
@@ -242,12 +242,12 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to match(
-                             "anydpi" => match(/res\/[a-zA-Z0-9]{2}.xml/),
-                             "hdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "mdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                             "anydpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/),
+                             "hdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "mdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                            )
           end
         end
@@ -259,7 +259,7 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to match(
-                             "anydpi-v26" => match(/res\/[a-zA-Z0-9]{2}.xml/)
+                             "anydpi-v26" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/)
                            )
           end
         end
@@ -269,7 +269,7 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to match(
-                             "anydpi" => match(/res\/[a-zA-Z0-9]{2}.xml/)
+                             "anydpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/)
                            )
           end
         end
@@ -281,13 +281,13 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to match(
-                             "anydpi-v21" => match(/res\/[a-zA-Z0-9]{2}.xml/),
-                             "hdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "mdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "ldpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                             "anydpi-v21" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/),
+                             "hdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "mdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "ldpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                            )
           end
         end
@@ -297,12 +297,12 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to match(
-                             "(default)" => match(/res\/[a-zA-Z0-9]{2}.xml/),
-                             "hdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "mdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/),
-                             "xxxhdpi" => match(/res\/[a-zA-Z0-9]{2}\.png/)
+                             "(default)" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/),
+                             "hdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "mdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/),
+                             "xxxhdpi" => match(/\Ares\/[a-zA-Z0-9]{2}\.png\z/)
                            )
           end
         end
@@ -313,7 +313,7 @@ describe AndroidApk::ResourceFinder do
 
         it do
           is_expected.to match(
-                           "(default)" => match(/res\/[a-zA-Z0-9]{2}.xml/)
+                           "(default)" => match(/\Ares\/[a-zA-Z0-9]{2}\.xml\z/)
                          )
         end
       end
