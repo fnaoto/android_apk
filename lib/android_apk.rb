@@ -6,13 +6,13 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
-require_relative './android_apk/resource_finder'
+require_relative "./android_apk/resource_finder"
 
 class AndroidApk
-  FALLBACK_DPI = 65534.freeze
-  ADAPTIVE_ICON_SDK = 26.freeze
+  FALLBACK_DPI = 65_534
+  ADAPTIVE_ICON_SDK = 26
 
-  DEFAULT_RESOURCE_CONFIG = "(default)".freeze # very special config
+  DEFAULT_RESOURCE_CONFIG = "(default)" # very special config
 
   # Dump result which was parsed manually
   # @return [Hash] Return a parsed result of aapt dump
@@ -239,11 +239,10 @@ class AndroidApk
   end
 
   def available_png_icon
-    png_path = DPI_TO_NAME_MAP.keys.sort { |i| i }.lazy.map { |dpi|
-      icon_path_hash[DPI_TO_NAME_MAP[dpi]]
-    }.find { |path|
-      path&.end_with?(".png")
-    }
+    png_path = DPI_TO_NAME_MAP.keys.sort { |i| i }
+      .lazy
+      .map { |dpi| icon_path_hash[DPI_TO_NAME_MAP[dpi]] }
+      .find { |path| path&.end_with?(".png") }
 
     return if png_path.nil?
 
@@ -436,7 +435,7 @@ class AndroidApk
 
       break if apk.min_sdk_version.to_i >= ADAPTIVE_ICON_SDK
 
-      apk.backward_compatible_adaptive_icon = apk.adaptive_icon && zip_file.find_entry(apk.icon_path_hash[png_dpi]) != nil
+      apk.backward_compatible_adaptive_icon = apk.adaptive_icon && !zip_file.find_entry(apk.icon_path_hash[png_dpi]).nil?
     end
   end
 end

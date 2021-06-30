@@ -183,11 +183,11 @@ describe "AndroidApk" do
       describe "resource aware specs" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, resource_dir, "apks-#{min_sdk}", apk_name) }
 
-        %w[resources new-resources].each do |res|
+        %w(resources new-resources).each do |res|
           context "in #{res}" do
             let(:resource_dir) { res }
 
-            %w[14 21 26].each do |sdk|
+            %w(14 21 26).each do |sdk|
               context "in apks-#{sdk}" do
                 let(:min_sdk) { sdk }
 
@@ -201,12 +201,12 @@ describe "AndroidApk" do
 
                   it {
                     expect(subject.icon_path_hash).to include(
-                                                        "mdpi" => be_end_with(".png"),
-                                                        "hdpi" => be_end_with(".png"),
-                                                        "xhdpi" => be_end_with(".png"),
-                                                        "xxhdpi" => be_end_with(".png"),
-                                                        "xxxhdpi" => be_end_with(".png")
-                                                      )
+                      "mdpi" => be_end_with(".png"),
+                      "hdpi" => be_end_with(".png"),
+                      "xhdpi" => be_end_with(".png"),
+                      "xxhdpi" => be_end_with(".png"),
+                      "xxxhdpi" => be_end_with(".png")
+                    )
                   }
                 end
 
@@ -220,12 +220,12 @@ describe "AndroidApk" do
 
                   it {
                     expect(subject.icon_path_hash).to include(
-                                                        "mdpi" => be_end_with(".png"),
-                                                        "hdpi" => be_end_with(".png"),
-                                                        "xhdpi" => be_end_with(".png"),
-                                                        "xxhdpi" => be_end_with(".png"),
-                                                        "xxxhdpi" => be_end_with(".png")
-                                                      )
+                      "mdpi" => be_end_with(".png"),
+                      "hdpi" => be_end_with(".png"),
+                      "xhdpi" => be_end_with(".png"),
+                      "xxhdpi" => be_end_with(".png"),
+                      "xxxhdpi" => be_end_with(".png")
+                    )
                   }
                 end
 
@@ -240,12 +240,12 @@ describe "AndroidApk" do
 
                   it {
                     expect(subject.icon_path_hash).to include(
-                                                        "mdpi" => be_end_with(".png"),
-                                                        "hdpi" => be_end_with(".png"),
-                                                        "xhdpi" => be_end_with(".png"),
-                                                        "xxhdpi" => be_end_with(".png"),
-                                                        "xxxhdpi" => be_end_with(".png")
-                                                      )
+                      "mdpi" => be_end_with(".png"),
+                      "hdpi" => be_end_with(".png"),
+                      "xhdpi" => be_end_with(".png"),
+                      "xxhdpi" => be_end_with(".png"),
+                      "xxxhdpi" => be_end_with(".png")
+                    )
                   }
                 end
 
@@ -308,21 +308,21 @@ describe "AndroidApk" do
       end
 
       describe "signature aware specs" do
-        let(:signatures) {
+        let(:signatures) do
           {
             "rsa" => "4ad4e4376face4e441a3b8802363a7f6c6b458ab",
             "dsa" => "6a2dd3e16a3f05fc219f914734374065985273b3"
           }
-        }
+        end
 
         let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "apks-#{min_sdk}-v1-#{v1_enabled}-v2-#{v2_enabled}/#{signing}/app-#{signing}.apk") }
 
-        %w[rsa dsa].each do |sig_method|
+        %w(rsa dsa).each do |sig_method|
           context "signed with #{sig_method}" do
             let(:signing) { sig_method }
             let(:signature) { signatures[signing] }
 
-            %w[14 24].each do |sdk|
+            %w(14 24).each do |sdk|
               context "in apks-#{sdk}" do
                 let(:min_sdk) { sdk }
 
@@ -351,14 +351,14 @@ describe "AndroidApk" do
   describe "#available_png_icon" do
     subject { AndroidApk.analyze(apk_filepath).available_png_icon }
 
-    let(:comparator) {
+    let(:comparator) do
       MiniMagick::Tool::Compare.new(whiny: false).tap do |c|
-        c.metric('AE')
+        c.metric("AE")
       end
-    }
+    end
 
     Dir.glob("#{FIXTURE_DIR}/*resources/**/*.apk").each do |apk_name|
-      context "#{apk_name}" do
+      context apk_name.to_s do
         let(:apk_filepath) { apk_name }
         let(:correct_icon_filepath) { apk_filepath.split("/").yield_self { |paths| File.join(*paths.insert(paths.index("fixture") + 1, "oracle")) }.gsub(/\.apk\z/, ".png") }
 
@@ -377,7 +377,7 @@ describe "AndroidApk" do
           if File.exist?(correct_icon_filepath)
             is_expected.to be_truthy
 
-            File.open(generated_icon_filepath, 'wb') do |f|
+            File.open(generated_icon_filepath, "wb") do |f|
               f.write(subject.read)
             end
 
