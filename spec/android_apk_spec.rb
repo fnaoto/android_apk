@@ -132,6 +132,16 @@ describe "AndroidApk" do
         end
       end
 
+      context "noVersionName.apk which doe have version name attribute" do
+        let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "noVersionName.apk") }
+
+        include_examples :analyzable
+
+        it "should returns empty string" do
+          expect(subject.version_name).to eq("")
+        end
+      end
+
       context "test-only.apk which has a testOnly flag" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "test-only.apk") }
 
