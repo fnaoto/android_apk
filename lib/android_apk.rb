@@ -148,7 +148,7 @@ class AndroidApk
     apk.package_name = vars["package"]["name"]
     apk.version_code = vars["package"]["versionCode"]
     apk.version_name = vars["package"]["versionName"]
-    apk.version_name ||= '' # ensure
+    apk.version_name ||= "" # ensure
 
     # platforms
     apk.sdk_version = vars["sdkVersion"]

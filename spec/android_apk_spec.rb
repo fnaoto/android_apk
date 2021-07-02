@@ -138,7 +138,7 @@ describe "AndroidApk" do
         include_examples :analyzable
 
         it "should returns empty string" do
-          expect(subject.version_name).to eq('')
+          expect(subject.version_name).to eq("")
         end
       end
 
