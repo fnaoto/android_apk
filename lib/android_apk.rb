@@ -154,8 +154,8 @@ class AndroidApk
     apk.target_sdk_version = vars["targetSdkVersion"]
 
     # icons and labels
-    apk.icons = {} # old
-    apk.labels = {}
+    apk.icons = Hash.new # old
+    apk.labels = Hash.new
 
     vars.each_key do |k|
       if (m = k.match(/\Aapplication-icon-(\d+)\z/))
@@ -350,7 +350,7 @@ class AndroidApk
   # @param [String, nil] results output of aapt command. this may be multi lines.
   # @return [Hash, nil] return nil if (see str) is nil. Otherwise the parsed hash will be returned.
   def self._parse_aapt(results)
-    vars = {}
+    vars = Hash.new
     results.split("\n").each do |line|
       key, value = _parse_line(line)
       next if key.nil?
