@@ -9,14 +9,17 @@ class AndroidApk
       def resolve_icons_in_arsc(apk_filepath:, default_icon_path:)
         return {} if default_icon_path.nil? || default_icon_path.empty?
 
-        results = `aapt dump --values resources #{apk_filepath.shellescape} 2>&1`
-        if $?.exitstatus != 0 or results.index("ERROR: dump failed")
-          return {}
-        end
+        stdout = dump_resource_values(apk_filepath: apk_filepath) or return {}
 
-        lines = results.split("\n")
+        lines = stdout.scrub.split("\n")
 
+        # Find the resource address line by the real resource path in the apk file.
+        #
+        #     resource ... <resource_name>: ... (l blocks)
+        #       ... "<default_icon_path>"
         value_index = lines.index { |line| line.index(default_icon_path) } or return {}
+
+        # resource_name never contain ':'
         resource_name = lines[value_index - 1].split(":")[1] or return {} # e.g. mipmap/ic_launcher
 
         start_index = lines.index { |line| line.index("spec resource ") && line.index(resource_name) }
@@ -69,6 +72,12 @@ class AndroidApk
         end
 
         config_hash
+      end
+
+      def dump_resource_values(apk_filepath:)
+        stdout, _, status = Open3.capture3("aapt", "dump", "--values", "resources", apk_filepath)
+        # we just need only drawables/mipmaps, and they are utf-8(ascii) friendly.
+        stdout if status.success?
       end
     end
   end

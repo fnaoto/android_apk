@@ -29,6 +29,29 @@ describe AndroidApk::ResourceFinder do
       end
     end
 
+    # emulate
+    context "sample.apk includes non UTF-8" do
+      let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "sample.apk") }
+      let(:aapt_output) do
+        stdout = AndroidApk::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
+        (stdout + "\xff").force_encoding("UTF-8")
+      end
+
+      before do
+        allow(AndroidApk::ResourceFinder).to receive(:dump_resource_values).and_return(aapt_output) # inject
+      end
+
+      it { expect { aapt_output.split('\n') }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8") }
+
+      it do
+        is_expected.to eq(
+          "hdpi-v4" => "res/drawable-hdpi/ic_launcher.png",
+          "mdpi-v4" => "res/drawable-mdpi/ic_launcher.png",
+          "xhdpi-v4" => "res/drawable-xhdpi/ic_launcher.png"
+        )
+      end
+    end
+
     context "resources" do
       let(:apk_filepath) { File.join(FIXTURE_DIR, "resources", apk_name) }
 

@@ -154,8 +154,8 @@ class AndroidApk
     apk.target_sdk_version = vars["targetSdkVersion"]
 
     # icons and labels
-    apk.icons = {} # old
-    apk.labels = {}
+    apk.icons = ({}) # old
+    apk.labels = ({})
 
     vars.each_key do |k|
       if (m = k.match(/\Aapplication-icon-(\d+)\z/))
