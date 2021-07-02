@@ -7,9 +7,9 @@ class AndroidApk
       # @param default_icon_path [String, NilClass]
       # @return [Hash] keys are dpi human readable names, values are png file paths that are relative
       def resolve_icons_in_arsc(apk_filepath:, default_icon_path:)
-        return Hash.new if default_icon_path.nil? || default_icon_path.empty?
+        return {} if default_icon_path.nil? || default_icon_path.empty?
 
-        stdout = dump_resource_values(apk_filepath: apk_filepath) or return Hash.new
+        stdout = dump_resource_values(apk_filepath: apk_filepath) or return {}
 
         lines = stdout.scrub.split("\n")
 
@@ -17,14 +17,14 @@ class AndroidApk
         #
         #     resource ... <resource_name>: ... (l blocks)
         #       ... "<default_icon_path>"
-        value_index = lines.index { |line| line.index(default_icon_path) } or return Hash.new
+        value_index = lines.index { |line| line.index(default_icon_path) } or return {}
 
         # resource_name never contain ':'
-        resource_name = lines[value_index - 1].split(":")[1] or return Hash.new # e.g. mipmap/ic_launcher
+        resource_name = lines[value_index - 1].split(":")[1] or return {} # e.g. mipmap/ic_launcher
 
         start_index = lines.index { |line| line.index("spec resource ") && line.index(resource_name) }
 
-        config_hash = Hash.new
+        config_hash = {}
 
         lines = lines.drop(start_index + 1)
 
@@ -75,7 +75,7 @@ class AndroidApk
       end
 
       def dump_resource_values(apk_filepath:)
-        stdout, _, status = Open3.capture3('aapt', 'dump', '--values', 'resources', apk_filepath)
+        stdout, _, status = Open3.capture3("aapt", "dump", "--values", "resources", apk_filepath)
         # we just need only drawables/mipmaps, and they are utf-8(ascii) friendly.
         stdout if status.success?
       end
