@@ -19,7 +19,7 @@ class AndroidApk
   attr_accessor :results
 
   # Application label a.k.a application name in the default resource
-  # @return [String] Return a value which is defined in AndroidManifest.xml
+  # @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
   attr_accessor :label
 
   # Application labels a.k.a application name in available resources
@@ -51,7 +51,7 @@ class AndroidApk
   attr_accessor :version_code
 
   # Version name of this apk
-  # @return [String] Return a value which is defined in AndroidManifest.xml
+  # @return [String] Return a value if it is defined in AndroidManifest.xml, otherwise empty. Never be nil.
   attr_accessor :version_name
 
   # Min sdk version of this apk
@@ -148,6 +148,7 @@ class AndroidApk
     apk.package_name = vars["package"]["name"]
     apk.version_code = vars["package"]["versionCode"]
     apk.version_name = vars["package"]["versionName"]
+    apk.version_name ||= '' # ensure
 
     # platforms
     apk.sdk_version = vars["sdkVersion"]
