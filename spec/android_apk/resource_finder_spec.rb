@@ -105,13 +105,13 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to eq(
-              "anydpi-v26" => "res/mipmap-anydpi-v26/ic_launcher.xml",
-              "hdpi" => "res/mipmap-hdpi-v4/ic_launcher.png",
-              "mdpi" => "res/mipmap-mdpi-v4/ic_launcher.png",
-              "xhdpi" => "res/mipmap-xhdpi-v4/ic_launcher.png",
-              "xxhdpi" => "res/mipmap-xxhdpi-v4/ic_launcher.png",
-              "xxxhdpi" => "res/mipmap-xxxhdpi-v4/ic_launcher.png"
-            )
+                             "anydpi-v26" => "res/mipmap-anydpi-v26/ic_launcher.xml",
+                             "hdpi" => "res/mipmap-hdpi-v4/ic_launcher.png",
+                             "mdpi" => "res/mipmap-mdpi-v4/ic_launcher.png",
+                             "xhdpi" => "res/mipmap-xhdpi-v4/ic_launcher.png",
+                             "xxhdpi" => "res/mipmap-xxhdpi-v4/ic_launcher.png",
+                             "xxxhdpi" => "res/mipmap-xxxhdpi-v4/ic_launcher.png"
+                           )
           end
         end
 
@@ -120,13 +120,45 @@ describe AndroidApk::ResourceFinder do
 
           it do
             is_expected.to eq(
-              "anydpi" => "res/mipmap-anydpi-v26/ic_launcher.xml",
-              "hdpi" => "res/mipmap-hdpi-v4/ic_launcher.png",
-              "mdpi" => "res/mipmap-mdpi-v4/ic_launcher.png",
-              "xhdpi" => "res/mipmap-xhdpi-v4/ic_launcher.png",
-              "xxhdpi" => "res/mipmap-xxhdpi-v4/ic_launcher.png",
-              "xxxhdpi" => "res/mipmap-xxxhdpi-v4/ic_launcher.png"
-            )
+                             "anydpi" => "res/mipmap-anydpi-v26/ic_launcher.xml",
+                             "hdpi" => "res/mipmap-hdpi-v4/ic_launcher.png",
+                             "mdpi" => "res/mipmap-mdpi-v4/ic_launcher.png",
+                             "xhdpi" => "res/mipmap-xhdpi-v4/ic_launcher.png",
+                             "xxhdpi" => "res/mipmap-xxhdpi-v4/ic_launcher.png",
+                             "xxxhdpi" => "res/mipmap-xxxhdpi-v4/ic_launcher.png"
+                           )
+          end
+        end
+      end
+
+      context "adaptiveIconWithRoundPng" do
+        context "min sdk is 14" do
+          let(:apk_name) { "apks-14/adaptiveIconWithRoundPng.apk" }
+
+          it do
+            is_expected.to eq(
+                             "anydpi-v26" => "res/mipmap-anydpi-v26/ic_launcher.xml",
+                             "hdpi" => "res/mipmap-hdpi-v4/ic_launcher.png",
+                             "mdpi" => "res/mipmap-mdpi-v4/ic_launcher.png",
+                             "xhdpi" => "res/mipmap-xhdpi-v4/ic_launcher.png",
+                             "xxhdpi" => "res/mipmap-xxhdpi-v4/ic_launcher.png",
+                             "xxxhdpi" => "res/mipmap-xxxhdpi-v4/ic_launcher.png"
+                           )
+          end
+        end
+
+        context "min sdk is 26" do
+          let(:apk_name) { "apks-26/adaptiveIconWithRoundPng.apk" }
+
+          it do
+            is_expected.to eq(
+                             "anydpi" => "res/mipmap-anydpi-v26/ic_launcher.xml",
+                             "hdpi" => "res/mipmap-hdpi-v4/ic_launcher.png",
+                             "mdpi" => "res/mipmap-mdpi-v4/ic_launcher.png",
+                             "xhdpi" => "res/mipmap-xhdpi-v4/ic_launcher.png",
+                             "xxhdpi" => "res/mipmap-xxhdpi-v4/ic_launcher.png",
+                             "xxxhdpi" => "res/mipmap-xxxhdpi-v4/ic_launcher.png"
+                           )
           end
         end
       end
