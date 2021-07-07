@@ -250,12 +250,12 @@ describe "AndroidApk" do
 
                   it {
                     expect(subject.icon_path_hash).to include(
-                                                        "mdpi" => be_end_with(".png"),
-                                                        "hdpi" => be_end_with(".png"),
-                                                        "xhdpi" => be_end_with(".png"),
-                                                        "xxhdpi" => be_end_with(".png"),
-                                                        "xxxhdpi" => be_end_with(".png")
-                                                      )
+                      "mdpi" => be_end_with(".png"),
+                      "hdpi" => be_end_with(".png"),
+                      "xhdpi" => be_end_with(".png"),
+                      "xxhdpi" => be_end_with(".png"),
+                      "xxxhdpi" => be_end_with(".png")
+                    )
                   }
                 end
 
@@ -270,12 +270,12 @@ describe "AndroidApk" do
 
                   it {
                     expect(subject.icon_path_hash).to include(
-                                                        "mdpi" => be_end_with(".png"),
-                                                        "hdpi" => be_end_with(".png"),
-                                                        "xhdpi" => be_end_with(".png"),
-                                                        "xxhdpi" => be_end_with(".png"),
-                                                        "xxxhdpi" => be_end_with(".png")
-                                                      )
+                      "mdpi" => be_end_with(".png"),
+                      "hdpi" => be_end_with(".png"),
+                      "xhdpi" => be_end_with(".png"),
+                      "xxhdpi" => be_end_with(".png"),
+                      "xxxhdpi" => be_end_with(".png")
+                    )
                   }
                 end
 
