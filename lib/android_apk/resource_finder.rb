@@ -21,6 +21,7 @@ class AndroidApk
 
         # resource_name never contain ':'
         resource_name = lines[value_index - 1].split(":")[1] or return {} # e.g. mipmap/ic_launcher
+        resource_name = ":#{resource_name}:" # to specify only <resource name>. The original value cannot avoid any resources that start with <resource_name>
 
         start_index = lines.index { |line| line.index("spec resource ") && line.index(resource_name) }
 
