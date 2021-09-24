@@ -6,6 +6,7 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
+require_relative "./android_apk/error"
 require_relative "./android_apk/resource_finder"
 
 class AndroidApk
@@ -116,22 +117,20 @@ class AndroidApk
     UNSIGNED = :unsigned
   end
 
-  class AndroidManifestValidateError < StandardError
-  end
-
   # Do analyze the given apk file. Analyzed apk does not mean *valid*.
   #
   # @param [String] filepath a filepath of an apk to be analyzed
   # @raise [AndroidManifestValidateError] if AndroidManifest.xml has multiple application, sdkVersion tags.
   # @return [AndroidApk, nil] An instance of AndroidApk will be returned if no problem exists while analyzing. Otherwise nil.
   def self.analyze(filepath)
-    return nil unless File.exist?(filepath)
+    raise ApkFileNotFoundError, 'an apk file is required to analyze.' unless File.exist?(filepath)
 
     apk = AndroidApk.new
     command = "aapt dump badging #{filepath.shellescape} 2>&1"
     results = `#{command}`
+
     if $?.exitstatus != 0 or results.index("ERROR: dump failed")
-      return nil
+      raise UnacceptableApkError, 'This apk file is not acceptable. Please make sure "aapt dump badging <apk file>" can process normally.'
     end
 
     apk.filepath = filepath
@@ -166,7 +165,7 @@ class AndroidApk
       end
     end
 
-    # It seems the resources in the aapt's output doesn't mean it's available in resource.arsc
+    # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.resolve_icons_in_arsc(
       apk_filepath: filepath,
       default_icon_path: vars["application"]["icon"]
