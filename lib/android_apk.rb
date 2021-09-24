@@ -125,7 +125,7 @@ class AndroidApk
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
   def self.analyze(filepath)
-    raise ApkFileNotFoundError, 'an apk file is required to analyze.' unless File.exist?(filepath)
+    raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
     apk = AndroidApk.new
     command = "aapt dump badging #{filepath.shellescape} 2>&1"
