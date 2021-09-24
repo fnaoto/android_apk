@@ -3,5 +3,10 @@ class AndroidApk
 
   class ApkFileNotFoundError < Error; end
   class UnacceptableApkError < Error; end
-  class AndroidManifestValidateError < Error; end
+  class AndroidManifestValidateError < Error
+
+    def initialize(tag)
+      super("duplicates of #{tag} tag in AndroidManifest.xml are invalid.")
+    end
+  end
 end

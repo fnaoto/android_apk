@@ -10,7 +10,7 @@ describe "AndroidApk" do
       end
 
       it "should be analyzable" do
-        expect(subject).not_to be_nil
+        expect { subject }.not_to raise_exception
       end
 
       it "should not raise any error when getting an icon file" do
@@ -26,47 +26,38 @@ describe "AndroidApk" do
       end
     end
 
-    context "if duplicated sdk_version apk are given" do
-      let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "duplicate_sdk_version.apk") }
-      it "should raise error" do
-        expect { subject }.to raise_error(AndroidApk::AndroidManifestValidateError, /Duplication of sdkVersion tag is not allowed/)
-      end
-    end
-
     context "if invalid sample apk files are given" do
-      context "no such apk file" do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "no_such_file") }
+      cases = [
+        {
+          filepath: fixture_file("invalid", "no_such_file"),
+          error: AndroidApk::ApkFileNotFoundError,
+        },
+        {
+          filepath: fixture_file("invalid", "no_android_manifest.apk"),
+          error: AndroidApk::UnacceptableApkError,
+        },
+        {
+          filepath: fixture_file("invalid", "corrupt_manifest.apk"),
+          error: AndroidApk::UnacceptableApkError,
+          error_message: /AndroidManifest\.xml is corrupt/
+        },
+        {
+          filepath: fixture_file("invalid", "duplicate_sdk_version.apk"),
+          error: AndroidApk::AndroidManifestValidateError,
+          error_message: /sdkVersion/
+        },
+        {
+          filepath: fixture_file("invalid", "multi_application_tag.apk"),
+          error: AndroidApk::AndroidManifestValidateError,
+          error_message: /application/
+        },
+      ]
 
-        it "should not exist" do
-          expect(File.exist?(apk_filepath)).to be_falsey
-        end
+      cases.each do |c|
+        context "for #{c[:filepath]}" do
+          let(:apk_filepath) { c[:filepath] }
 
-        it "should not raise any exception but not be analyzable" do
-          expect(subject).to be_nil
-        end
-      end
-
-      context "not an apk file" do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "dummy.apk") }
-
-        it "should exist" do
-          expect(File.exist?(apk_filepath)).to be_truthy
-        end
-
-        it "should not raise any exception but not be analyzable" do
-          expect(subject).to be_nil
-        end
-      end
-
-      context "multi_application_tag.apk which has multiple application tags" do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "multi_application_tag.apk") }
-
-        it "should exist" do
-          expect(File.exist?(apk_filepath)).to be_truthy
-        end
-
-        it "should raise error" do
-          expect { subject }.to raise_error(AndroidApk::AndroidManifestValidateError)
+          it { expect { subject }.to raise_error(c[:error], c[:error_message]) }
         end
       end
     end
