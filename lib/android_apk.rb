@@ -6,6 +6,7 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
+require_relative "./android_apk/error"
 require_relative "./android_apk/resource_finder"
 
 class AndroidApk
@@ -116,22 +117,29 @@ class AndroidApk
     UNSIGNED = :unsigned
   end
 
-  class AndroidManifestValidateError < StandardError
-  end
-
   # Do analyze the given apk file. Analyzed apk does not mean *valid*.
   #
   # @param [String] filepath a filepath of an apk to be analyzed
-  # @raise [AndroidManifestValidateError] if AndroidManifest.xml has multiple application, sdkVersion tags.
-  # @return [AndroidApk, nil] An instance of AndroidApk will be returned if no problem exists while analyzing. Otherwise nil.
+  # @return [AndroidApk] An instance of AndroidApk will be returned if no problem exists while analyzing.
+  # @raise [AndroidApk::ApkFileNotFoundError] if the filepath doesn't exist
+  # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
+  # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
   def self.analyze(filepath)
-    return nil unless File.exist?(filepath)
+    raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
     apk = AndroidApk.new
     command = "aapt dump badging #{filepath.shellescape} 2>&1"
     results = `#{command}`
-    if $?.exitstatus != 0 or results.index("ERROR: dump failed")
-      return nil
+
+    if $?.exitstatus != 0
+      if results.index(/ERROR:?\s/) # : is never required because it's mixed.
+        # *normally* failed. The output of aapk dump is helpful.
+        # ref: https://cs.android.com/android/platform/superproject/+/master:frameworks/base/tools/aapt/Command.cpp;l=860?q=%22dump%20failed%22%20aapt
+        raise UnacceptableApkError, "This apk file cannot be analyzed using 'aapt dump badging'. #{results}"
+      else
+        # unexpectedly failed. This may happen due to the running environment.
+        raise UnacceptableApkError, "'aapt dump badging' failed due to an unexpected error."
+      end
     end
 
     apk.filepath = filepath
@@ -166,7 +174,7 @@ class AndroidApk
       end
     end
 
-    # It seems the resources in the aapt's output doesn't mean it's available in resource.arsc
+    # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.resolve_icons_in_arsc(
       apk_filepath: filepath,
       default_icon_path: vars["application"]["icon"]
@@ -383,7 +391,7 @@ class AndroidApk
   # @param [String] key a key of AndroidManifest.xml
   # @raise [AndroidManifestValidateError] if a key is found in (see NOT_ALLOW_DUPLICATE_TAG_NAMES)
   def self.reject_illegal_duplicated_key!(key)
-    raise AndroidManifestValidateError, "Duplication of #{key} tag is not allowed" if NOT_ALLOW_DUPLICATE_TAG_NAMES.include?(key)
+    raise AndroidManifestValidateError, key if NOT_ALLOW_DUPLICATE_TAG_NAMES.include?(key)
   end
 
   def self.read_signature(apk, filepath)
