@@ -6,6 +6,7 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
+require_relative "./android_apk/app_icon"
 require_relative "./android_apk/error"
 require_relative "./android_apk/resource_finder"
 require_relative "./android_apk/xmltree"
@@ -28,10 +29,10 @@ class AndroidApk
   # @return [Hash] Return a hash based on AndroidManifest.xml
   attr_accessor :labels
 
-  # @deprecated no longer used
-  # Application icon's path
-  # @return [String] Return a relative path of this apk's icon
-  attr_accessor :icon
+  # The default path of the application icon
+  # @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
+  attr_accessor :default_icon_path
+  alias icon default_icon_path
 
   # @deprecated no longer used
   # Application icon paths for all densities
@@ -142,7 +143,8 @@ class AndroidApk
     apk.label = vars["application-label"]
 
     default_icon_path = vars["application"]["icon"]
-    apk.icon = default_icon_path
+
+    apk.default_icon_path = default_icon_path
     apk.test_only = vars.key?("testOnly='-1'")
 
     # package
@@ -186,6 +188,25 @@ class AndroidApk
   def initialize
     self.verified = false
     self.test_only = false
+  end
+
+  # @return [Array<AndroidApk::AppIcon>]
+  def app_icons
+    # [[highest dpi (or prior-level resolution), path], ...]
+    sorted_paths = icon_path_hash.transform_keys do |name|
+      if name == DEFAULT_RESOURCE_CONFIG
+        10_000 # Primary
+      elsif name == "anydpi"
+        9_000 # Secondary
+      elsif name =~ /anydpi-v(\d+)/
+        8_000 + $1.to_i # Prioritized
+      else # Fallbacks
+        # We assume Google never release lower density than ldpi
+        DPI_TO_NAME_MAP.key(name) || DPI_TO_NAME_MAP.keys.max
+      end
+    end.sort.reverse
+
+    sorted_paths.map { |dpi, path| ::AndroidApk::AppIcon.new(apk_filepath: filepath, dpi: dpi, resource_path: path) }
   end
 
   # @deprecated no longer used
@@ -236,6 +257,7 @@ class AndroidApk
     end
   end
 
+  # @deprecated no longer used
   def available_png_icon
     png_path = DPI_TO_NAME_MAP.keys.sort { |l, r| r - l }
       .lazy
@@ -300,7 +322,7 @@ class AndroidApk
   end
 
   def has_xml_icon?
-    icon_xmltree != nil
+    icon_xmltree != nil && (icon_xmltree.vector_drawable? || icon_xmltree.adaptive_icon?)
   end
 
   # Check whether or not this apk's icon is an adaptive icon
@@ -432,6 +454,7 @@ class AndroidApk
     end
   end
 
+  # @return [AndroidApk::Xmltree, NilClass]
   private def icon_xmltree
     return @icon_xmltree if defined?(@icon_xmltree)
 
