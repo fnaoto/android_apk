@@ -235,8 +235,7 @@ describe "AndroidApk" do
 
                   it { expect(subject.available_png_icon).not_to be_nil }
                   it { expect(subject).to be_adaptive_icon }
-                  # adaptive icon doesn't need backward compatibility if min sdk version is equal to or newer than 26
-                  it { expect(subject.backward_compatible_adaptive_icon?).to eq(sdk.to_i < 26) }
+                  it { expect(subject.backward_compatible_adaptive_icon?).to be_truthy }
                   it { expect(subject).to be_installable }
 
                   it {
@@ -255,8 +254,7 @@ describe "AndroidApk" do
 
                   it { expect(subject.available_png_icon).not_to be_nil }
                   it { expect(subject).to be_adaptive_icon }
-                  # adaptive icon doesn't need backward compatibility if min sdk version is equal to or newer than 26
-                  it { expect(subject.backward_compatible_adaptive_icon?).to eq(sdk.to_i < 26) }
+                  it { expect(subject.backward_compatible_adaptive_icon?).to be_truthy }
                   it { expect(subject).to be_installable }
 
                   it {

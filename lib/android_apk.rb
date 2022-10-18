@@ -8,6 +8,7 @@ require "zip"
 
 require_relative "./android_apk/error"
 require_relative "./android_apk/resource_finder"
+require_relative "./android_apk/xmltree"
 
 class AndroidApk
   FALLBACK_DPI = 65_534
@@ -67,16 +68,6 @@ class AndroidApk
   # The SHA-1 signature of this apk
   # @return [String, nil] Return nil if cannot extract sha1 hash, otherwise the value will be returned.
   attr_accessor :signature
-
-  # Check whether or not this apk's icon is an adaptive icon
-  # @return [Boolean] Return true if this apk has an adaptive icon, otherwise false.
-  attr_accessor :adaptive_icon
-  alias adaptive_icon? adaptive_icon
-
-  # Check whether or not this apk's icon is a backward-compatible adaptive icon for lower sdk
-  # @return [Boolean] Return true if this apk is targeting to 25 or less sdk version and has an adaptive icon and a fallback icon, otherwise false.
-  attr_accessor :backward_compatible_adaptive_icon
-  alias backward_compatible_adaptive_icon? backward_compatible_adaptive_icon
 
   # Check whether or not this apk is verified
   # @return [Boolean] Return true if this apk is verified, otherwise false.
@@ -149,15 +140,16 @@ class AndroidApk
 
     # application info
     apk.label = vars["application-label"]
-    apk.icon = vars["application"]["icon"]
+
+    default_icon_path = vars["application"]["icon"]
+    apk.icon = default_icon_path
     apk.test_only = vars.key?("testOnly='-1'")
 
     # package
 
     apk.package_name = vars["package"]["name"]
     apk.version_code = vars["package"]["versionCode"]
-    apk.version_name = vars["package"]["versionName"]
-    apk.version_name ||= "" # ensure
+    apk.version_name = vars["package"]["versionName"] || ""
 
     # platforms
     apk.sdk_version = vars["sdkVersion"]
@@ -178,7 +170,7 @@ class AndroidApk
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.resolve_icons_in_arsc(
       apk_filepath: filepath,
-      default_icon_path: vars["application"]["icon"]
+      default_icon_path: default_icon_path
     )
 
     apk.icon_path_hash = apk.icons.dup.transform_keys do |dpi|
@@ -186,15 +178,12 @@ class AndroidApk
     end.merge(icons_in_arsc)
 
     read_signature(apk, filepath)
-    read_adaptive_icon(apk, filepath)
 
     return apk
   end
   # rubocop:enable Metrics/AbcSize
 
   def initialize
-    self.adaptive_icon = false
-    self.backward_compatible_adaptive_icon = false
     self.verified = false
     self.test_only = false
   end
@@ -310,6 +299,28 @@ class AndroidApk
     min_sdk_version.to_i >= ADAPTIVE_ICON_SDK ? "anydpi" : "anydpi-v26"
   end
 
+  def has_xml_icon?
+    icon_xmltree != nil
+  end
+
+  # Check whether or not this apk's icon is an adaptive icon
+  # @return [Boolean] Return true if this apk has an *correct* adaptive icon, otherwise false.
+  def adaptive_icon?
+    return @adaptive_icon if defined?(@adaptive_icon)
+
+    @adaptive_icon = nil
+    @adaptive_icon = sdk_version.to_i >= ADAPTIVE_ICON_SDK ? icon_xmltree&.adaptive_icon? : backward_compatible_adaptive_icon?
+  end
+
+  # Check whether or not this apk's icon is a backward-compatible adaptive icon for lower sdk
+  # @return [Boolean] Return true if this apk has an adaptive icon and a fallback icon, otherwise false.
+  def backward_compatible_adaptive_icon?
+    return @backward_compatible_adaptive_icon if defined?(@backward_compatible_adaptive_icon)
+    @backward_compatible_adaptive_icon = nil
+    # at least one png icon is required if min sdk version doesn't support adaptive icon
+    @backward_compatible_adaptive_icon = icon_xmltree&.adaptive_icon? && SUPPORTED_DPI_NAMES.any? { |d| icon_path_hash[d]&.end_with?(".png") }
+  end
+
   # workaround for https://code.google.com/p/android/issues/detail?id=160847
   def self._parse_values_workaround(str)
     return nil if str.nil?
@@ -421,28 +432,10 @@ class AndroidApk
     end
   end
 
-  def self.read_adaptive_icon(apk, filepath)
-    # candidate
-    adaptive_icon_path = apk.icon or return
+  private def icon_xmltree
+    return @icon_xmltree if defined?(@icon_xmltree)
 
-    return unless adaptive_icon_path.end_with?(".xml")
-
-    png_dpi = SUPPORTED_DPI_NAMES.find { |d| apk.icon_path_hash[d]&.end_with?(".png") }
-
-    # at least one png icon is required if min sdk version doesn't support adaptive icon
-    if apk.min_sdk_version.to_i < ADAPTIVE_ICON_SDK && png_dpi.nil?
-      return
-    end
-
-    # invalid xml file may throw an error
-    Zip::File.open(filepath) do |zip_file|
-      apk.adaptive_icon = zip_file.find_entry(adaptive_icon_path)&.get_input_stream do |entry|
-        !!entry.read.include?("adaptive-icon")
-      end
-
-      break if apk.min_sdk_version.to_i >= ADAPTIVE_ICON_SDK
-
-      apk.backward_compatible_adaptive_icon = apk.adaptive_icon && !zip_file.find_entry(apk.icon_path_hash[png_dpi]).nil?
-    end
+    @icon_xmltree = nil
+    @icon_xmltree = Xmltree.read(apk_filepath: filepath, xml_filepath: icon) if icon.end_with?(".xml")
   end
 end
