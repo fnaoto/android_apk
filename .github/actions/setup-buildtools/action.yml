@@ -4,10 +4,6 @@ inputs:
   buildtools-version:
     description: buildtools's version
     required: true
-outputs:
-  pull-number:
-    description: 'a number of a pull request'
-    value: ${{ steps.random-number-generator.outputs.random-id }}
 runs:
   using: 'composite'
   steps:
@@ -16,7 +12,11 @@ runs:
     - name: Install the specific buildtools-version ${{ inputs.buildtools-version }}
       shell: bash
       run: |
-        yes | sdkmanager "build-tools;${{ inputs.buildtools-version }}" >/dev/null 2>&1 || echo "Failed but it's okay because this command sometimes fails somehow"
+        if ! yes | sdkmanager --licenses; then
+          echo 'ok. this beasically happens due to the broken pipe'
+        fi
+
+        sdkmanager "build-tools;${{ inputs.buildtools-version }}"
         echo ${{ format('{0}/build-tools/{1}', env.ANDROID_SDK_ROOT, inputs.buildtools-version) }} >> $GITHUB_PATH
     - name: Check the command availability
       shell: bash
