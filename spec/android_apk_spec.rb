@@ -381,7 +381,7 @@ describe "AndroidApk" do
     Dir.glob("#{FIXTURE_DIR}/*resources/**/*.apk").each do |apk_name|
       context apk_name.to_s do
         let(:apk_filepath) { apk_name }
-        let(:correct_icon_filepath) { apk_filepath.split("/").then { |paths| File.join(*paths.insert(paths.index("fixture") + 1, "oracle")) }.gsub(/\.apk\z/, ".png") }
+        let(:correct_icon_filepath) { apk_filepath.split("/").yield_self { |paths| File.join(*paths.insert(paths.index("fixture") + 1, "oracle")) }.gsub(/\.apk\z/, ".png") }
 
         let(:temp_dir) { Dir.mktmpdir }
         let(:generated_icon_filepath) { File.join(temp_dir, "#{File.basename(apk_name)}.png") }

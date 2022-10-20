@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov"
 
   # Linting code and docs
-  spec.add_development_dependency "rubocop"
+  spec.add_development_dependency "rubocop", "= 1.28.2" # latest of ruby 2.5 support
   spec.add_development_dependency "yard"
 
   # Makes testing easy via `bundle exec guard`

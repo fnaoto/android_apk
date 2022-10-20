@@ -10,6 +10,9 @@ AllCops:
   NewCops: enable
   SuggestExtensions: false
 
+Style/ObjectThen:
+  EnforcedStyle: yield_self # then has been introduced since 2.6 but this cop does not take of the target ruby version
+
 Metrics/ModuleLength:
   Exclude:
     - 'spec/**/*'
@@ -82,7 +85,7 @@ Metrics/CyclomaticComplexity:
   Max: 17
 
 # Configuration parameters: AllowURI, URISchemes.
-Metrics/LineLength:
+Layout/LineLength:
   Max: 370
 
 # Configuration parameters: CountKeywordArgs.

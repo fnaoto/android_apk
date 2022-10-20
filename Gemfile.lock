@@ -101,7 +101,7 @@ DEPENDENCIES
   pry
   rake (~> 10.0)
   rspec (~> 3.4)
-  rubocop
+  rubocop (= 1.28.2)
   simplecov
   yard
 
