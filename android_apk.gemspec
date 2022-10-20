@@ -2,14 +2,13 @@
 
 lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "version.rb"
+require "version"
 
 Gem::Specification.new do |spec|
   spec.name = "android_apk"
   spec.version = AndroidApk::VERSION
   spec.authors = ["Kyosuke Inoue"]
   spec.email = ["kyoro@hakamastyle.net"]
-  spec.date = "2015-04-29"
   spec.description = "This library can analyze Android APK application package. You can get any information of android apk file."
   spec.summary = "Android APK file analyzer"
   spec.homepage = "https://github.com/DeployGate/android_apk"
@@ -42,4 +41,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry"
 
   spec.add_development_dependency "mini_magick" # to compare extracted png files
+  spec.metadata["rubygems_mfa_required"] = "true"
 end

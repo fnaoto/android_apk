@@ -180,9 +180,9 @@ class AndroidApk
       default_icon_path: vars["application"]["icon"]
     )
 
-    apk.icon_path_hash = apk.icons.dup.transform_keys { |dpi|
+    apk.icon_path_hash = apk.icons.dup.transform_keys do |dpi|
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
-    }.merge(icons_in_arsc)
+    end.merge(icons_in_arsc)
 
     read_signature(apk, filepath)
     read_adaptive_icon(apk, filepath)
@@ -236,9 +236,7 @@ class AndroidApk
       Zip::File.open(self.filepath) do |zip_file|
         entry = zip_file.find_entry(icon) or return nil
 
-        File.open(output_to, "wb") do |f|
-          f.write(zip_file.read(entry))
-        end
+        File.binwrite(output_to, zip_file.read(entry))
       end
 
       return nil unless File.exist?(output_to)
@@ -248,7 +246,7 @@ class AndroidApk
   end
 
   def available_png_icon
-    png_path = DPI_TO_NAME_MAP.keys.sort { |i| i }
+    png_path = DPI_TO_NAME_MAP.keys.sort { |l, r| r - l }
       .lazy
       .map { |dpi| icon_path_hash[DPI_TO_NAME_MAP[dpi]] }
       .find { |path| path&.end_with?(".png") }
@@ -264,9 +262,7 @@ class AndroidApk
 
         next if entry.nil?
 
-        File.open(output_to, "wb") do |f|
-          f.write(zip_file.read(entry))
-        end
+        File.binwrite(output_to, zip_file.read(entry))
       end
 
       break unless File.exist?(output_to)
@@ -328,7 +324,7 @@ class AndroidApk
 
     if str.index("='")
       # key-value hash
-      vars = Hash[str.scan(/(\S+)='((?:\\'|[^'])*)'/)]
+      vars = str.scan(/(\S+)='((?:\\'|[^'])*)'/).to_h
       vars.each_value { |v| v.gsub(/\\'/, "'") }
     else
       # values array
