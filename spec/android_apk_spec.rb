@@ -44,7 +44,7 @@ describe "AndroidApk" do
         {
           filepath: fixture_file("invalid", "duplicate_sdk_version.apk"),
           error: AndroidApk::AndroidManifestValidateError,
-          error_message: /sdkVersion/
+          error_message: /sdkVersion/ # TODO this field never duplicate since buildtools 30.0.1
         },
         {
           filepath: fixture_file("invalid", "multi_application_tag.apk"),
