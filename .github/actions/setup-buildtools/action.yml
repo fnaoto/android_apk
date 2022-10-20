@@ -1,0 +1,36 @@
+name: 'Set up the speficic verison of build tools and add some commands to PATH'
+description: 'ditto'
+inputs:
+  buildtools-version:
+    description: buildtools's version
+    required: true
+outputs:
+  pull-number:
+    description: 'a number of a pull request'
+    value: ${{ steps.random-number-generator.outputs.random-id }}
+runs:
+  using: 'composite'
+  steps:
+    - uses: android-actions/setup-android@v2
+      # this produces ANDROID_SDK_ROOT env
+    - name: Install the specific buildtools-version ${{ inputs.buildtools-version }}
+      shell: bash
+      run: |
+        yes | sdkmanager "build-tools;${{ inputs.buildtools-version }}" >/dev/null 2>&1 || echo "Failed but it's okay because this command sometimes fails somehow"
+        echo ${{ format('{0}/build-tools/{1}', env.ANDROID_SDK_ROOT, inputs.buildtools-version) }} >> $GITHUB_PATH
+    - name: Check the command availability
+      shell: bash
+      run: |
+        if aapt version; then
+          echo "::debug::aapt is ok"
+        else
+          echo "::error::aapt was not executable"
+        fi
+
+        if apksigner help; then
+          echo "apksigner's version is $(apksigner version)"
+          echo "::debug::apksigner is ok"
+        else
+          echo "::error::apksigner was not executable"
+        fi
+    

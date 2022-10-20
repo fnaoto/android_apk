@@ -1,0 +1,47 @@
+name: Build and test
+
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - synchronize
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - run: bundle exec rake rubocop
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: # Use as the parameter injection
+        java-version:
+          - 8
+        buildtools-version:
+          - 29.0.3
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: ${{ matrix.java-version }}
+      - uses: ./.github/actions/setup-buildtools
+        with:
+          buildtools-version: ${{ matrix.buildtools-version }}
+      - run: bundle exec rake specs
