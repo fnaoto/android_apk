@@ -418,9 +418,36 @@ describe "AndroidApk" do
     let(:apk) { AndroidApk.analyze(apk_filepath) }
     let(:app_icons) { apk.app_icons }
 
-    it "ok" do
+    it "returns an array ordered by dpi desc" do
       expect(app_icons.map(&:metadata)).to eq([
-
+                                                {
+                                                  dpi: 10000,
+                                                  resource_path: "res/uF.xml"
+                                                },
+                                                {
+                                                  dpi: 8026,
+                                                  resource_path: "res/uF.xml"
+                                                },
+                                                {
+                                                  dpi:640,
+                                                  resource_path: "res/CG.png"
+                                                },
+                                                {
+                                                  dpi:480,
+                                                  resource_path: "res/D2.png"
+                                                },
+                                                {
+                                                  dpi:320,
+                                                  resource_path: "res/jy.png"
+                                                },
+                                                {
+                                                  dpi:240,
+                                                  resource_path: "res/SD.png"
+                                                },
+                                                {
+                                                  dpi:160,
+                                                  resource_path: "res/u3.png"
+                                                }
                                               ])
     end
   end
