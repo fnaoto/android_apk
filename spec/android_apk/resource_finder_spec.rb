@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 describe AndroidApk::ResourceFinder do
-  describe "#resolve_icons_in_arsc" do
-    subject { AndroidApk::ResourceFinder.resolve_icons_in_arsc(apk_filepath: apk_filepath, default_icon_path: default_icon_path) }
+  describe "#decode_resource_table" do
+    subject { AndroidApk::ResourceFinder.decode_resource_table(apk_filepath: apk_filepath, default_icon_path: default_icon_path) }
     let(:default_icon_path) { AndroidApk.analyze(apk_filepath).icon }
 
     context "sample.apk" do
@@ -33,15 +33,21 @@ describe AndroidApk::ResourceFinder do
     context "sample.apk includes non UTF-8" do
       let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "sample.apk") }
       let(:aapt_output) do
-        stdout = AndroidApk::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
+        stdout = AndroidApk::Aapt::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
+        (+"#{stdout}\xFF").force_encoding("UTF-8")
+      end
+      let(:aapt2_output) do
+        stdout = AndroidApk::Aapt2::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
         (+"#{stdout}\xFF").force_encoding("UTF-8")
       end
 
       before do
-        allow(AndroidApk::ResourceFinder).to receive(:dump_resource_values).and_return(aapt_output) # inject
+        allow(AndroidApk::Aapt::ResourceFinder).to receive(:dump_resource_values).and_return(aapt_output) # inject
+        allow(AndroidApk::Aapt2::ResourceFinder).to receive(:dump_resource_values).and_return(aapt2_output) # inject
       end
 
       it { expect { aapt_output.split('\n') }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8") }
+      it { expect { aapt2_output.split('\n') }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8") }
 
       it do
         is_expected.to eq(

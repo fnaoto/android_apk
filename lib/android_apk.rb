@@ -9,12 +9,14 @@ require "zip"
 require_relative "android_apk/apksigner"
 require_relative "android_apk/app_icon"
 require_relative "android_apk/app_signature"
+require_relative "android_apk/configuration"
 require_relative "android_apk/error"
 require_relative "android_apk/resource_finder"
 require_relative "android_apk/signature_digest"
 require_relative "android_apk/signature_lineage_reader"
 require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
+require_relative "android_apk/aapt2/resource_finder"
 
 class AndroidApk
   FALLBACK_DPI = 65_534
@@ -187,7 +189,7 @@ class AndroidApk
     end
 
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
-    icons_in_arsc = ::AndroidApk::ResourceFinder.resolve_icons_in_arsc(
+    icons_in_arsc = ::AndroidApk::ResourceFinder.decode_resource_table(
       apk_filepath: filepath,
       default_icon_path: default_icon_path
     )
@@ -328,6 +330,26 @@ class AndroidApk
     @backward_compatible_adaptive_icon = nil
     # at least one png icon is required if min sdk version doesn't support adaptive icon
     @backward_compatible_adaptive_icon = icon_xmltree&.adaptive_icon? && SUPPORTED_DPI_NAMES.any? { |d| icon_path_hash[d]&.end_with?(".png") }
+  end
+
+  def eql?(other)
+    return false unless other.kind_of?(AndroidApk)
+
+    %i(
+      label
+      package_name
+      version_code
+      version_name
+      min_sdk_version
+      target_sdk_version
+      signature
+      adaptive_icon?
+      backward_compatible_adaptive_icon?
+      verified?
+      test_only?
+    ).all? do |prop|
+      self.send(prop) == other.send(prop)
+    end
   end
 
   # deprecations
