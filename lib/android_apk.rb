@@ -124,6 +124,7 @@ class AndroidApk
   # @raise [AndroidApk::ApkFileNotFoundError] if the filepath doesn't exist
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
+  # rubocop:disable Metrics/AbcSize
   def self.analyze(filepath)
     raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
@@ -189,6 +190,7 @@ class AndroidApk
 
     return apk
   end
+  # rubocop:enable Metrics/AbcSize
 
   def initialize
     self.adaptive_icon = false
@@ -203,7 +205,7 @@ class AndroidApk
   # @param [Integer] dpi one of (see SUPPORTED_DPIS)
   # @param [Boolean] want_png request a png icon expressly
   # @return [File, nil] an application icon file object in temp dir
-  def icon_file(dpi = nil, want_png = false)
+  def icon_file(dpi = nil, want_png = false) # rubocop:disable Style/OptionalBooleanParameter
     icon = dpi ? self.icons[dpi.to_i] : self.icon
     return nil if icon.nil? || icon.empty?
 

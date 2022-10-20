@@ -8,6 +8,7 @@ AllCops:
     - 'spec/fixture/**/*'
     - 'tmp/**/*'
   NewCops: enable
+  SuggestExtensions: false
 
 Metrics/ModuleLength:
   Exclude:
