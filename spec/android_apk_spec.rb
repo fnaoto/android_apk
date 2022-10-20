@@ -413,7 +413,7 @@ describe "AndroidApk" do
     end
   end
 
-  describe '#app_icons' do
+  describe "#app_icons" do
     let(:apk_filepath) { File.join(FIXTURE_DIR, "new-resources", "apks-21", "adaptiveIconWithPng.apk") }
     let(:apk) { AndroidApk.analyze(apk_filepath) }
     let(:app_icons) { apk.app_icons }
@@ -421,7 +421,7 @@ describe "AndroidApk" do
     it "returns an array ordered by dpi desc" do
       expect(app_icons.map(&:metadata)).to eq([
                                                 {
-                                                  dpi: 10000,
+                                                  dpi: 10_000,
                                                   resource_path: "res/uF.xml"
                                                 },
                                                 {
@@ -429,30 +429,30 @@ describe "AndroidApk" do
                                                   resource_path: "res/uF.xml"
                                                 },
                                                 {
-                                                  dpi:640,
+                                                  dpi: 640,
                                                   resource_path: "res/CG.png"
                                                 },
                                                 {
-                                                  dpi:480,
+                                                  dpi: 480,
                                                   resource_path: "res/D2.png"
                                                 },
                                                 {
-                                                  dpi:320,
+                                                  dpi: 320,
                                                   resource_path: "res/jy.png"
                                                 },
                                                 {
-                                                  dpi:240,
+                                                  dpi: 240,
                                                   resource_path: "res/SD.png"
                                                 },
                                                 {
-                                                  dpi:160,
+                                                  dpi: 160,
                                                   resource_path: "res/u3.png"
                                                 }
                                               ])
     end
   end
 
-  describe '#app_icons and #available_png_icon compatibility' do
+  describe "#app_icons and #available_png_icon compatibility" do
     let(:apk) { AndroidApk.analyze(apk_filepath) }
     let(:app_icons) { apk.app_icons }
     let(:available_png_icon) { apk.available_png_icon }
@@ -485,14 +485,12 @@ describe "AndroidApk" do
           if File.exist?(correct_icon_filepath)
             # first png element in app_icons must be same to available_png_icon
 
-            File.open(available_png_icon_filepath, "wb") do |f|
-              f.write(available_png_icon.read)
-            end
+            File.binwrite(available_png_icon_filepath, available_png_icon.read)
 
             File.open(app_icons_filepath, "wb") do |f|
-              app_icons.find { |icon| icon.png? }.open { |png|
+              app_icons.find(&:png?).open do |png|
                 f.write(png.read)
-              }
+              end
             end
 
             comparator << available_png_icon_filepath
@@ -503,7 +501,7 @@ describe "AndroidApk" do
               expect(dist.to_i).to be_zero
             end
           else
-            expect(app_icons.any? { |icon| icon.png? }).to be_falsey
+            expect(app_icons.any?(&:png?)).to be_falsey
           end
         end
       end

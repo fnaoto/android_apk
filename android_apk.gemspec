@@ -16,7 +16,6 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 2.6.0"
 
   spec.files = `git ls-files | grep -v 'spec/fixture'`.split($/)
-  spec.test_files = spec.files.grep(%r{^(test|spec)/})
   spec.require_paths = ["lib"]
 
   spec.extra_rdoc_files = %w(LICENSE.txt README.md)
@@ -39,8 +38,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "guard", "~> 2.14"
   spec.add_development_dependency "guard-rspec", "~> 4.7"
 
-  spec.add_development_dependency "pry"
   spec.add_development_dependency "irb"
+  spec.add_development_dependency "pry"
 
   spec.add_development_dependency "mini_magick" # to compare extracted png files
   spec.metadata["rubygems_mfa_required"] = "true"

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 class AndroidApk
   class AppIcon
@@ -13,17 +14,17 @@ class AndroidApk
 
     # @return [Boolean] returns true if the resource path indicates png file, otherwise false. this may contain false-positive.
     def png?
-      @extname == '.png'
+      @extname == ".png"
     end
 
     # @return [Boolean] returns true if the resource path indicates webp file, otherwise false. this may contain false-positive.
     def webp?
-      @extname == '.webp'
+      @extname == ".webp"
     end
 
     # @return [Boolean] returns true if the resource path indicates xml file, otherwise false. this may contain false-positive.
     def xml?
-      @extname == '.xml'
+      @extname == ".xml"
     end
 
     # @return [Hash] icon's metadata
@@ -39,7 +40,7 @@ class AndroidApk
     # @yieldparam [IO]
     # @yieldreturn
     def open
-      f = Tempfile.new(['app_icon', @extname])
+      f = Tempfile.new(["app_icon", @extname])
 
       begin
         f.binmode
@@ -55,7 +56,7 @@ class AndroidApk
         end
 
         f.rewind
-      rescue
+      rescue StandardError
         f.close
         raise
       end

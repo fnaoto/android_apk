@@ -116,7 +116,6 @@ class AndroidApk
   # @raise [AndroidApk::ApkFileNotFoundError] if the filepath doesn't exist
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
-  # rubocop:disable Metrics/AbcSize
   def self.analyze(filepath)
     raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
@@ -183,7 +182,6 @@ class AndroidApk
 
     return apk
   end
-  # rubocop:enable Metrics/AbcSize
 
   def initialize
     self.verified = false
@@ -194,12 +192,13 @@ class AndroidApk
   def app_icons
     # [[highest dpi (or prior-level resolution), path], ...]
     sorted_paths = icon_path_hash.transform_keys do |name|
-      if name == DEFAULT_RESOURCE_CONFIG
+      case name
+      when DEFAULT_RESOURCE_CONFIG
         10_000 # Primary
-      elsif name == "anydpi"
+      when "anydpi"
         9_000 # Secondary
-      elsif name =~ /anydpi-v(\d+)/
-        8_000 + $1.to_i # Prioritized
+      when /anydpi-v(\d+)/
+        8_000 + Regexp.last_match(1).to_i # Prioritized
       else # Fallbacks
         # We assume Google never release lower density than ldpi
         DPI_TO_NAME_MAP.key(name) || DPI_TO_NAME_MAP.keys.max
@@ -321,8 +320,9 @@ class AndroidApk
     min_sdk_version.to_i >= ADAPTIVE_ICON_SDK ? "anydpi" : "anydpi-v26"
   end
 
-  def has_xml_icon?
-    icon_xmltree != nil && (icon_xmltree.vector_drawable? || icon_xmltree.adaptive_icon?)
+  # @return [Boolean] returns true if the default app icon is a xml, otherwise false.
+  def xml_icon?
+    !icon_xmltree.nil? && (icon_xmltree.vector_drawable? || icon_xmltree.adaptive_icon?)
   end
 
   # Check whether or not this apk's icon is an adaptive icon
@@ -338,6 +338,7 @@ class AndroidApk
   # @return [Boolean] Return true if this apk has an adaptive icon and a fallback icon, otherwise false.
   def backward_compatible_adaptive_icon?
     return @backward_compatible_adaptive_icon if defined?(@backward_compatible_adaptive_icon)
+
     @backward_compatible_adaptive_icon = nil
     # at least one png icon is required if min sdk version doesn't support adaptive icon
     @backward_compatible_adaptive_icon = icon_xmltree&.adaptive_icon? && SUPPORTED_DPI_NAMES.any? { |d| icon_path_hash[d]&.end_with?(".png") }

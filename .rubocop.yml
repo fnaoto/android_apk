@@ -168,3 +168,6 @@ Style/TrailingCommaInArrayLiteral:
 
 Style/TrailingCommaInHashLiteral:
   Enabled: false
+
+Style/AccessModifierDeclarations:
+  EnforcedStyle: inline
