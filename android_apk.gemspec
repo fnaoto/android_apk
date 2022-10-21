@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Android APK file analyzer"
   spec.homepage = "https://github.com/DeployGate/android_apk"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 2.5.0"
+  spec.required_ruby_version = ">= 2.6.0"
 
   spec.files = `git ls-files | grep -v 'spec/fixture'`.split($/)
   spec.test_files = spec.files.grep(%r{^(test|spec)/})
@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov"
 
   # Linting code and docs
-  spec.add_development_dependency "rubocop", "= 1.28.2" # latest of ruby 2.5 support
+  spec.add_development_dependency "rubocop"
   spec.add_development_dependency "yard"
 
   # Makes testing easy via `bundle exec guard`
