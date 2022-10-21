@@ -34,7 +34,7 @@ describe AndroidApk::ResourceFinder do
       let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "sample.apk") }
       let(:aapt_output) do
         stdout = AndroidApk::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
-        (stdout + "\xff").force_encoding("UTF-8")
+        (+"#{stdout}\xFF").force_encoding("UTF-8")
       end
 
       before do

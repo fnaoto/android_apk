@@ -7,7 +7,11 @@ AllCops:
     - 'vendor/**/*'
     - 'spec/fixture/**/*'
     - 'tmp/**/*'
-  TargetRubyVersion: 2.3.7
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/ObjectThen:
+  EnforcedStyle: yield_self # then has been introduced since 2.6 but this cop does not take of the target ruby version
 
 Metrics/ModuleLength:
   Exclude:
@@ -22,20 +26,16 @@ Style/StringLiterals:
 Style/ClassCheck:
   EnforcedStyle: kind_of?
 
-# It's better to be more explicit about the type
-Style/BracesAroundHashParameters:
-  Enabled: false
-
 # specs sometimes have useless assignments, which is fine
 Lint/UselessAssignment:
   Exclude:
     - '**/spec/**/*'
 
 # We could potentially enable the 2 below:
-Layout/IndentHash:
+Layout/FirstHashElementIndentation:
   Enabled: false
 
-Layout/AlignHash:
+Layout/HashAlignment:
   Enabled: false
 
 # HoundCI doesn't like this rule
@@ -85,7 +85,7 @@ Metrics/CyclomaticComplexity:
   Max: 17
 
 # Configuration parameters: AllowURI, URISchemes.
-Metrics/LineLength:
+Layout/LineLength:
   Max: 370
 
 # Configuration parameters: CountKeywordArgs.
@@ -139,7 +139,7 @@ Style/MixinGrouping:
 Naming/FileName:
   Enabled: false
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
   Enabled: false
 
 Style/SpecialGlobalVars:

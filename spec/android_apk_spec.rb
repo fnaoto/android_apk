@@ -44,7 +44,7 @@ describe "AndroidApk" do
         {
           filepath: fixture_file("invalid", "duplicate_sdk_version.apk"),
           error: AndroidApk::AndroidManifestValidateError,
-          error_message: /sdkVersion/
+          error_message: /sdkVersion/ # TODO: this field never duplicate since buildtools 30.0.1
         },
         {
           filepath: fixture_file("invalid", "multi_application_tag.apk"),
@@ -70,7 +70,7 @@ describe "AndroidApk" do
       end
 
       # space check
-      %w(sample.apk sample\ with\ space.apk).each do |apk_name|
+      ["sample.apk", "sample with space.apk"].each do |apk_name|
         context "#{apk_name} which is a very simple sample" do
           let(:apk_filepath) { File.join(FIXTURE_DIR, "other", apk_name) }
 
@@ -398,9 +398,7 @@ describe "AndroidApk" do
           if File.exist?(correct_icon_filepath)
             is_expected.to be_truthy
 
-            File.open(generated_icon_filepath, "wb") do |f|
-              f.write(subject.read)
-            end
+            File.binwrite(generated_icon_filepath, subject.read)
 
             comparator << generated_icon_filepath
             comparator << correct_icon_filepath
