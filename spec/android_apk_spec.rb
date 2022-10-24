@@ -235,8 +235,7 @@ describe "AndroidApk" do
 
                   it { expect(subject.available_png_icon).not_to be_nil }
                   it { expect(subject).to be_adaptive_icon }
-                  # adaptive icon doesn't need backward compatibility if min sdk version is equal to or newer than 26
-                  it { expect(subject.backward_compatible_adaptive_icon?).to eq(sdk.to_i < 26) }
+                  it { expect(subject.backward_compatible_adaptive_icon?).to be_truthy }
                   it { expect(subject).to be_installable }
 
                   it {
@@ -255,8 +254,7 @@ describe "AndroidApk" do
 
                   it { expect(subject.available_png_icon).not_to be_nil }
                   it { expect(subject).to be_adaptive_icon }
-                  # adaptive icon doesn't need backward compatibility if min sdk version is equal to or newer than 26
-                  it { expect(subject.backward_compatible_adaptive_icon?).to eq(sdk.to_i < 26) }
+                  it { expect(subject.backward_compatible_adaptive_icon?).to be_truthy }
                   it { expect(subject).to be_installable }
 
                   it {
@@ -409,6 +407,101 @@ describe "AndroidApk" do
             end
           else
             is_expected.to be_nil
+          end
+        end
+      end
+    end
+  end
+
+  describe "#app_icons" do
+    let(:apk_filepath) { File.join(FIXTURE_DIR, "new-resources", "apks-21", "adaptiveIconWithPng.apk") }
+    let(:apk) { AndroidApk.analyze(apk_filepath) }
+    let(:app_icons) { apk.app_icons }
+
+    it "returns an array ordered by dpi desc" do
+      expect(app_icons.map(&:metadata)).to eq([
+                                                {
+                                                  dpi: 10_000,
+                                                  resource_path: "res/uF.xml"
+                                                },
+                                                {
+                                                  dpi: 8026,
+                                                  resource_path: "res/uF.xml"
+                                                },
+                                                {
+                                                  dpi: 640,
+                                                  resource_path: "res/CG.png"
+                                                },
+                                                {
+                                                  dpi: 480,
+                                                  resource_path: "res/D2.png"
+                                                },
+                                                {
+                                                  dpi: 320,
+                                                  resource_path: "res/jy.png"
+                                                },
+                                                {
+                                                  dpi: 240,
+                                                  resource_path: "res/SD.png"
+                                                },
+                                                {
+                                                  dpi: 160,
+                                                  resource_path: "res/u3.png"
+                                                }
+                                              ])
+    end
+  end
+
+  describe "#app_icons and #available_png_icon compatibility" do
+    let(:apk) { AndroidApk.analyze(apk_filepath) }
+    let(:app_icons) { apk.app_icons }
+    let(:available_png_icon) { apk.available_png_icon }
+
+    let(:comparator) do
+      MiniMagick::Tool::Compare.new(whiny: false).tap do |c|
+        c.metric("AE")
+      end
+    end
+
+    Dir.glob("#{FIXTURE_DIR}/*resources/**/*.apk").each do |apk_name|
+      context apk_name.to_s do
+        let(:apk_filepath) { apk_name }
+        let(:correct_icon_filepath) { apk_filepath.split("/").yield_self { |paths| File.join(*paths.insert(paths.index("fixture") + 1, "oracle")) }.gsub(/\.apk\z/, ".png") }
+
+        let(:temp_dir) { Dir.mktmpdir }
+        let(:available_png_icon_filepath) { File.join(temp_dir, "#{File.basename(apk_name)}-available-png-icon.png") }
+        let(:app_icons_filepath) { File.join(temp_dir, "#{File.basename(apk_name)}-app_icons.png") }
+
+        before do
+          available_png_icon_filepath
+          app_icons_filepath
+        end
+
+        after do
+          FileUtils.remove_entry(temp_dir)
+        end
+
+        it "no *diff* is expected" do
+          if File.exist?(correct_icon_filepath)
+            # first png element in app_icons must be same to available_png_icon
+
+            File.binwrite(available_png_icon_filepath, available_png_icon.read)
+
+            File.open(app_icons_filepath, "wb") do |f|
+              app_icons.find(&:png?).open do |png|
+                f.write(png.read)
+              end
+            end
+
+            comparator << available_png_icon_filepath
+            comparator << app_icons_filepath
+            comparator << File.join(temp_dir, "diff")
+
+            comparator.call do |_, dist, _|
+              expect(dist.to_i).to be_zero
+            end
+          else
+            expect(app_icons.any?(&:png?)).to be_falsey
           end
         end
       end
