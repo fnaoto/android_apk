@@ -198,7 +198,7 @@ class AndroidApk
       when "anydpi"
         7_000 # Fallback of anydpi-v\d+
       when DEFAULT_RESOURCE_CONFIG
-        0 # Weakest
+        100 # Weakest
       else # Intermediate
         # We assume Google never release lower density than ldpi
         DPI_TO_NAME_MAP.key(name) || DPI_TO_NAME_MAP.keys.max
