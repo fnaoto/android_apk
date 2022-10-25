@@ -193,13 +193,13 @@ class AndroidApk
     # [[highest dpi (or prior-level resolution), path], ...]
     sorted_paths = icon_path_hash.transform_keys do |name|
       case name
-      when DEFAULT_RESOURCE_CONFIG
-        10_000 # Primary
-      when "anydpi"
-        9_000 # Secondary
       when /anydpi-v(\d+)/
         8_000 + Regexp.last_match(1).to_i # Prioritized
-      else # Fallbacks
+      when "anydpi"
+        7_000 # Fallback of anydpi-v\d+
+      when DEFAULT_RESOURCE_CONFIG
+        100 # Weakest
+      else # Intermediate
         # We assume Google never release lower density than ldpi
         DPI_TO_NAME_MAP.key(name) || DPI_TO_NAME_MAP.keys.max
       end

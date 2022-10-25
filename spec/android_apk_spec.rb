@@ -421,10 +421,6 @@ describe "AndroidApk" do
     it "returns an array ordered by dpi desc" do
       expect(app_icons.map(&:metadata)).to eq([
                                                 {
-                                                  dpi: 10_000,
-                                                  resource_path: "res/uF.xml"
-                                                },
-                                                {
                                                   dpi: 8026,
                                                   resource_path: "res/uF.xml"
                                                 },
@@ -447,6 +443,10 @@ describe "AndroidApk" do
                                                 {
                                                   dpi: 160,
                                                   resource_path: "res/u3.png"
+                                                },
+                                                {
+                                                  dpi: 100,
+                                                  resource_path: "res/uF.xml"
                                                 }
                                               ])
     end
