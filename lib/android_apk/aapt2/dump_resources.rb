@@ -3,10 +3,16 @@
 class AndroidApk
   module Aapt2
     class DumpResources
+      def self.dump_resource_values(apk_filepath:)
+        stdout, _, status = Open3.capture3("aapt2", "dump", "resources", apk_filepath)
+        # we just need only drawables/mipmaps, and they are utf-8(ascii) friendly.
+        stdout if status.success?
+      end
+
       # @param apk_filepath [String] a path to apk_filepath
       def initialize(apk_filepath:)
         @apk_filepath = apk_filepath
-        @dump_results = dump_resource_values(apk_filepath: apk_filepath)&.scrub&.split("\n")
+        @dump_results = self.class.dump_resource_values(apk_filepath: apk_filepath)&.scrub&.split("\n")
       end
 
       # @param default_icon_path [String] the path to the default icon in the apk
@@ -65,7 +71,7 @@ class AndroidApk
 
           break if dpi.nil? || path.nil? # unexpected.
 
-          dpi = dpi.empty? ? ::AndroidApk::DEFAULT_RESOURCE_CONFIG : dpi # reassign
+          dpi = ::AndroidApk::DEFAULT_RESOURCE_CONFIG if dpi.empty? # reassign
 
           block.call(dpi, path)
 
@@ -77,12 +83,6 @@ class AndroidApk
             cursor_index += 1
           end
         end
-      end
-
-      private def dump_resource_values(apk_filepath:)
-        stdout, _, status = Open3.capture3("aapt2", "dump", "resources", apk_filepath)
-        # we just need only drawables/mipmaps, and they are utf-8(ascii) friendly.
-        stdout if status.success?
       end
     end
   end

@@ -9,14 +9,13 @@ require "zip"
 require_relative "android_apk/apksigner"
 require_relative "android_apk/app_icon"
 require_relative "android_apk/app_signature"
-require_relative "android_apk/configuration"
 require_relative "android_apk/error"
 require_relative "android_apk/resource_finder"
 require_relative "android_apk/signature_digest"
 require_relative "android_apk/signature_lineage_reader"
 require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
-require_relative "android_apk/aapt2/resource_finder"
+require_relative "android_apk/aapt2/dump_resources"
 
 class AndroidApk
   FALLBACK_DPI = 65_534

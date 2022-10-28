@@ -32,21 +32,15 @@ describe AndroidApk::ResourceFinder do
     # emulate
     context "sample.apk includes non UTF-8" do
       let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "sample.apk") }
-      let(:aapt_output) do
-        stdout = AndroidApk::Aapt::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
-        (+"#{stdout}\xFF").force_encoding("UTF-8")
-      end
       let(:aapt2_output) do
-        stdout = AndroidApk::Aapt2::ResourceFinder.dump_resource_values(apk_filepath: apk_filepath)
+        stdout = AndroidApk::Aapt2::DumpResources.dump_resource_values(apk_filepath: apk_filepath)
         (+"#{stdout}\xFF").force_encoding("UTF-8")
       end
 
       before do
-        allow(AndroidApk::Aapt::ResourceFinder).to receive(:dump_resource_values).and_return(aapt_output) # inject
-        allow(AndroidApk::Aapt2::ResourceFinder).to receive(:dump_resource_values).and_return(aapt2_output) # inject
+        allow(AndroidApk::Aapt2::DumpResources).to receive(:dump_resource_values).and_return(aapt2_output) # inject
       end
 
-      it { expect { aapt_output.split('\n') }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8") }
       it { expect { aapt2_output.split('\n') }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8") }
 
       it do
