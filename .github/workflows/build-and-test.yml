@@ -42,7 +42,7 @@ jobs:
       - uses: ruby/setup-ruby@93287a1fa82c6ddbb6d8db978df4b0119cd8879f
         with:
           bundler-cache: true
-      - uses: actions/setup-java@308abcba03229002f0055e17d79d00c32fca160f
+      - uses: actions/setup-java@e11351903adc86f18bfc6660e4de2911b9fc33b4
         with:
           distribution: 'corretto'
           java-version: ${{ matrix.java-version }}
