@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix: # Use as the parameter injection
         java-version:
-          - 8
+          - 11
         buildtools-version:
           - 29.0.3
     steps:
