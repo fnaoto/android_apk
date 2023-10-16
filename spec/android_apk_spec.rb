@@ -181,6 +181,20 @@ describe "AndroidApk" do
         end
       end
 
+      context "signature v3" do
+        let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-rotated.apk") }
+
+        include_examples :analyzable
+
+        it "should expose the signature" do
+          expect(subject.signature).to eq("e9d0dd023bdab7fae9479d1ecbb3275e0fccac20")
+
+          compared_apk_filepath = File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-new.apk")
+
+          expect(subject.signature).to eq(AndroidApk.analyze(compared_apk_filepath).signature)
+        end
+      end
+
       describe "resource aware specs" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, resource_dir, "apks-#{min_sdk}", apk_name) }
 
