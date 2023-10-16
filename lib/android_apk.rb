@@ -429,8 +429,8 @@ class AndroidApk
   def self.read_signature(apk, filepath)
     # Use target_sdk_version as min sdk version!
     # Because some of apks are signed by only v2 scheme even though they have 23 and lower min sdk version
-    # For now, we use Signer #1 until multiple signers come
-    print_certs_command = "apksigner verify --min-sdk-version=#{apk.target_sdk_version} --print-certs #{filepath.shellescape} | grep 'Signer #1' | grep 'SHA-1'"
+    # The output of the single signing contins Signer #1 but multiple signing a.k.a key rotation just print Signer; It means no #1 prefix.
+    print_certs_command = "apksigner verify --min-sdk-version=#{apk.target_sdk_version} --print-certs #{filepath.shellescape} | grep 'Signer ' | grep 'SHA-1'"
     certs_hunk, _, exit_status = Open3.capture3(print_certs_command)
 
     apk.verified = exit_status.success?
@@ -449,7 +449,8 @@ class AndroidApk
 
     if exit_status.success? && !certs_hunk.nil?
       signatures = certs_hunk.scan(/(?:[0-9a-zA-Z]{2}:?){20}/)
-      apk.signature = signatures[0].delete(":").downcase if signatures.length == 1
+      # The first seen signer will be the final signer of the apk file.
+      apk.signature = signatures[0].delete(":").downcase
     else
       apk.signature = nil # make sure being nil
     end
