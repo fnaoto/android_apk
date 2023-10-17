@@ -42,11 +42,6 @@ describe "AndroidApk" do
           error_message: /AndroidManifest\.xml is corrupt/
         },
         {
-          filepath: fixture_file("invalid", "duplicate_sdk_version.apk"),
-          error: AndroidApk::AndroidManifestValidateError,
-          error_message: /sdkVersion/ # TODO: this field never duplicate since buildtools 30.0.1
-        },
-        {
           filepath: fixture_file("invalid", "multi_application_tag.apk"),
           error: AndroidApk::AndroidManifestValidateError,
           error_message: /application/
@@ -178,6 +173,20 @@ describe "AndroidApk" do
 
         it "should have unsigned state" do
           expect(subject.uninstallable_reasons).to include(AndroidApk::Reason::UNSIGNED)
+        end
+      end
+
+      context "signature v3" do
+        let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-rotated.apk") }
+
+        include_examples :analyzable
+
+        it "should expose the signature" do
+          expect(subject.signature).to eq("e9d0dd023bdab7fae9479d1ecbb3275e0fccac20")
+
+          compared_apk_filepath = File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-new.apk")
+
+          expect(subject.signature).to eq(AndroidApk.analyze(compared_apk_filepath).signature)
         end
       end
 

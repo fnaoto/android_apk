@@ -6,10 +6,10 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
-require_relative "./android_apk/app_icon"
-require_relative "./android_apk/error"
-require_relative "./android_apk/resource_finder"
-require_relative "./android_apk/xmltree"
+require_relative "android_apk/app_icon"
+require_relative "android_apk/error"
+require_relative "android_apk/resource_finder"
+require_relative "android_apk/xmltree"
 
 class AndroidApk
   FALLBACK_DPI = 65_534
@@ -348,7 +348,7 @@ class AndroidApk
   def self._parse_values_workaround(str)
     return nil if str.nil?
 
-    str.scan(/^'(.+)'$/).map { |v| v[0].gsub(/\\'/, "'") }
+    str.scan(/^'(.+)'$/).map { |v| v[0].gsub("\\'", "'") }
   end
 
   # Parse values of aapt output
@@ -361,10 +361,10 @@ class AndroidApk
     if str.index("='")
       # key-value hash
       vars = str.scan(/(\S+)='((?:\\'|[^'])*)'/).to_h
-      vars.each_value { |v| v.gsub(/\\'/, "'") }
+      vars.each_value { |v| v.gsub("\\'", "'") }
     else
       # values array
-      vars = str.scan(/'((?:\\'|[^'])*)'/).map { |v| v[0].gsub(/\\'/, "'") }
+      vars = str.scan(/'((?:\\'|[^'])*)'/).map { |v| v[0].gsub("\\'", "'") }
     end
     return vars
   end
@@ -429,8 +429,8 @@ class AndroidApk
   def self.read_signature(apk, filepath)
     # Use target_sdk_version as min sdk version!
     # Because some of apks are signed by only v2 scheme even though they have 23 and lower min sdk version
-    # For now, we use Signer #1 until multiple signers come
-    print_certs_command = "apksigner verify --min-sdk-version=#{apk.target_sdk_version} --print-certs #{filepath.shellescape} | grep 'Signer #1' | grep 'SHA-1'"
+    # The output of the single signing contins Signer #1 but multiple signing a.k.a key rotation just print Signer; It means no #1 prefix.
+    print_certs_command = "apksigner verify --min-sdk-version=#{apk.target_sdk_version} --print-certs #{filepath.shellescape} | grep 'Signer ' | grep 'SHA-1'"
     certs_hunk, _, exit_status = Open3.capture3(print_certs_command)
 
     apk.verified = exit_status.success?
@@ -449,7 +449,8 @@ class AndroidApk
 
     if exit_status.success? && !certs_hunk.nil?
       signatures = certs_hunk.scan(/(?:[0-9a-zA-Z]{2}:?){20}/)
-      apk.signature = signatures[0].delete(":").downcase if signatures.length == 1
+      # The first seen signer will be the final signer of the apk file.
+      apk.signature = signatures[0].delete(":").downcase
     else
       apk.signature = nil # make sure being nil
     end

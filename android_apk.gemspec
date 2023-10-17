@@ -22,25 +22,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "rubyzip", "~> 2.3.0"
 
-  # General ruby development
-  spec.add_development_dependency "bundler", "~> 1.3"
-  spec.add_development_dependency "rake", "~> 10.0"
-
-  # Testing support
-  spec.add_development_dependency "rspec", "~> 3.4"
-  spec.add_development_dependency "simplecov"
-
-  # Linting code and docs
-  spec.add_development_dependency "rubocop"
-  spec.add_development_dependency "yard"
-
-  # Makes testing easy via `bundle exec guard`
-  spec.add_development_dependency "guard", "~> 2.14"
-  spec.add_development_dependency "guard-rspec", "~> 4.7"
-
-  spec.add_development_dependency "irb"
-  spec.add_development_dependency "pry"
-
-  spec.add_development_dependency "mini_magick" # to compare extracted png files
   spec.metadata["rubygems_mfa_required"] = "true"
 end
