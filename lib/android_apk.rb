@@ -6,10 +6,10 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
-require_relative "./android_apk/app_icon"
-require_relative "./android_apk/error"
-require_relative "./android_apk/resource_finder"
-require_relative "./android_apk/xmltree"
+require_relative "android_apk/app_icon"
+require_relative "android_apk/error"
+require_relative "android_apk/resource_finder"
+require_relative "android_apk/xmltree"
 
 class AndroidApk
   FALLBACK_DPI = 65_534
@@ -348,7 +348,7 @@ class AndroidApk
   def self._parse_values_workaround(str)
     return nil if str.nil?
 
-    str.scan(/^'(.+)'$/).map { |v| v[0].gsub(/\\'/, "'") }
+    str.scan(/^'(.+)'$/).map { |v| v[0].gsub("\\'", "'") }
   end
 
   # Parse values of aapt output
@@ -361,10 +361,10 @@ class AndroidApk
     if str.index("='")
       # key-value hash
       vars = str.scan(/(\S+)='((?:\\'|[^'])*)'/).to_h
-      vars.each_value { |v| v.gsub(/\\'/, "'") }
+      vars.each_value { |v| v.gsub("\\'", "'") }
     else
       # values array
-      vars = str.scan(/'((?:\\'|[^'])*)'/).map { |v| v[0].gsub(/\\'/, "'") }
+      vars = str.scan(/'((?:\\'|[^'])*)'/).map { |v| v[0].gsub("\\'", "'") }
     end
     return vars
   end

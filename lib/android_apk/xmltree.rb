@@ -20,7 +20,7 @@ class AndroidApk
       @root_element = nil
 
       line_num = 1
-      content&.split(/\n/) do |line|
+      content&.split("\n") do |line|
         line.strip!
 
         if line.start_with?("E: ")
