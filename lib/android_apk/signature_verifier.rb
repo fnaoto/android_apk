@@ -30,7 +30,7 @@ class AndroidApk
         end
 
         # The output of the single signing contains Signer #1 but multiple signing a.k.a key rotation just print Signer; It means no #1 prefix.
-        sha1_signatures = (stdout || "").split("\n")
+        sha1_signatures = stdout.split("\n")
           .filter { |l| l.index("Signer ") && l.index("SHA-1 digest") }
           .flat_map { |l| l.scan(SHA1_CAPTURE_REGEX) }
           .map { |sig| sig.delete(":").downcase }
