@@ -89,10 +89,10 @@ class AndroidApk
   end
 
   # Check whether or not this apk is verified
-  # @deprecated
+  # @deprecated this is the same to unsigned i.e. signature is nil
   # @return [Boolean] Return true if this apk is verified, otherwise false.
   def verified
-    (trusted_signature_lineage&.size || 0).positive?
+    !trusted_signature_lineage.empty?
   end
   alias verified? verified
 
