@@ -11,4 +11,7 @@ class AndroidApk
       super("duplicates of #{tag} tag in AndroidManifest.xml are invalid.")
     end
   end
+
+  class ApkSignerExecutionError < Error; end
+  class ParsingSignatureError < Error; end
 end
