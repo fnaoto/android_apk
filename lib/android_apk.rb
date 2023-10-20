@@ -19,53 +19,54 @@ class AndroidApk
   DEFAULT_RESOURCE_CONFIG = "(default)" # very special config
 
   # Dump result which was parsed manually
+  # @deprecated don't expose this field
   # @return [Hash] Return a parsed result of aapt dump
-  attr_accessor :results
+  attr_reader :results
 
   # Application label a.k.a application name in the default resource
   # @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
-  attr_accessor :label
+  attr_reader :label
 
   # Application labels a.k.a application name in available resources
   # @return [Hash] Return a hash based on AndroidManifest.xml
-  attr_accessor :labels
+  attr_reader :labels
 
   # The default path of the application icon
   # @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
-  attr_accessor :default_icon_path
+  attr_reader :default_icon_path
   alias icon default_icon_path
 
   # @deprecated no longer used
   # Application icon paths for all densities
   # @return [Hash] Return a hash of relative paths
-  attr_accessor :icons
+  attr_reader :icons
 
   # Application icon paths for all densities that are human readable names
   # This value may contains anyapi-v<api_version>.
   #
   # @return [Hash] Return a hash of relative paths
-  attr_accessor :icon_path_hash
+  attr_reader :icon_path_hash
 
   # Package name of this apk
   # @return [String] Return a value which is defined in AndroidManifest.xml
-  attr_accessor :package_name
+  attr_reader :package_name
 
   # Version code of this apk
   # @return [String] Return a value which is defined in AndroidManifest.xml
-  attr_accessor :version_code
+  attr_reader :version_code
 
   # Version name of this apk
   # @return [String] Return a value if it is defined in AndroidManifest.xml, otherwise empty. Never be nil.
-  attr_accessor :version_name
+  attr_reader :version_name
 
   # Min sdk version of this apk
   # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_accessor :sdk_version
+  attr_reader :sdk_version
   alias min_sdk_version sdk_version
 
   # Target sdk version of this apk
   # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_accessor :target_sdk_version
+  attr_reader :target_sdk_version
 
   # The trusted signature lineage. The first element is the same to the signing signature of the apk file.
   # @return [Array<String>] empty if it's unsigned.
@@ -73,13 +74,13 @@ class AndroidApk
 
   # Check whether or not this apk is a test mode
   # @return [Boolean] Return true if this apk is a test mode, otherwise false.
-  attr_accessor :test_only
+  attr_reader :test_only
   alias test_only? test_only
 
   # An apk file which has been analyzed
   # @deprecated because a file might be moved/removed
   # @return [String] Return a file path of this apk file
-  attr_accessor :filepath
+  attr_reader :filepath
 
   # The SHA-1 signature of this apk
   # @deprecated
@@ -128,11 +129,9 @@ class AndroidApk
   # @raise [AndroidApk::ApkFileNotFoundError] if the filepath doesn't exist
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
-  # rubocop:disable Metrics/AbcSize
   def self.analyze(filepath)
     raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
-    apk = AndroidApk.new
     command = "aapt dump badging #{filepath.shellescape} 2>&1"
     results = `#{command}`
 
@@ -147,37 +146,46 @@ class AndroidApk
       end
     end
 
-    apk.filepath = filepath
-    apk.results = results
-    vars = _parse_aapt(results)
+    AndroidApk.new(
+      filepath: filepath,
+      results: results
+    )
+  end
+
+  def initialize(
+    filepath:,
+    results:
+  )
+    @filepath = filepath
+    @results = results
+
+    vars = self.class._parse_aapt(results)
 
     # application info
-    apk.label = vars["application-label"]
+    @label = vars["application-label"]
 
-    default_icon_path = vars["application"]["icon"]
-
-    apk.default_icon_path = default_icon_path
-    apk.test_only = vars.key?("testOnly='-1'")
+    @default_icon_path = vars["application"]["icon"]
+    @test_only = vars.key?("testOnly='-1'")
 
     # package
 
-    apk.package_name = vars["package"]["name"]
-    apk.version_code = vars["package"]["versionCode"]
-    apk.version_name = vars["package"]["versionName"] || ""
+    @package_name = vars["package"]["name"]
+    @version_code = vars["package"]["versionCode"]
+    @version_name = vars["package"]["versionName"] || ""
 
     # platforms
-    apk.sdk_version = vars["sdkVersion"]
-    apk.target_sdk_version = vars["targetSdkVersion"]
+    @sdk_version = vars["sdkVersion"]
+    @target_sdk_version = vars["targetSdkVersion"]
 
     # icons and labels
-    apk.icons = ({}) # old
-    apk.labels = ({})
+    @icons = {} # old
+    @labels = {}
 
     vars.each_key do |k|
       if (m = k.match(/\Aapplication-icon-(\d+)\z/))
-        apk.icons[m[1].to_i] = vars[k]
+        @icons[m[1].to_i] = vars[k]
       elsif (m = k.match(/\Aapplication-label-(\S+)\z/))
-        apk.labels[m[1]] = vars[k]
+        @labels[m[1]] = vars[k]
       end
     end
 
@@ -187,24 +195,14 @@ class AndroidApk
       default_icon_path: default_icon_path
     )
 
-    apk.icon_path_hash = apk.icons.dup.transform_keys do |dpi|
+    @icon_path_hash = icons.dup.transform_keys do |dpi|
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
     end.merge(icons_in_arsc)
 
-    apk.instance_variable_set(
-      :@trusted_signature_lineage,
-      ::AndroidApk::SignatureVerifier.verify(
-        filepath: filepath,
-        target_sdk_version: apk.target_sdk_version
-      )
+    @trusted_signature_lineage = ::AndroidApk::SignatureVerifier.verify(
+      filepath: filepath,
+      target_sdk_version: target_sdk_version
     )
-
-    return apk
-  end
-  # rubocop:enable Metrics/AbcSize
-
-  def initialize
-    self.test_only = false
   end
 
   # @return [Array<AndroidApk::AppIcon>]
