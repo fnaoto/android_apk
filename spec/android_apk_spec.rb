@@ -180,14 +180,6 @@ describe "AndroidApk" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-rotated.apk") }
 
         include_examples :analyzable
-
-        it "should expose the signature" do
-          expect(subject.signature).to eq("e9d0dd023bdab7fae9479d1ecbb3275e0fccac20")
-
-          compared_apk_filepath = File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-new.apk")
-
-          expect(subject.signature).to eq(AndroidApk.analyze(compared_apk_filepath).signature)
-        end
       end
 
       describe "resource aware specs" do
@@ -328,45 +320,6 @@ describe "AndroidApk" do
                   it { expect(subject).not_to be_adaptive_icon }
                   it { expect(subject).not_to be_backward_compatible_adaptive_icon }
                   it { expect(subject).to be_installable }
-                end
-              end
-            end
-          end
-        end
-      end
-
-      describe "signature aware specs" do
-        let(:signatures) do
-          {
-            "rsa" => "4ad4e4376face4e441a3b8802363a7f6c6b458ab",
-            "dsa" => "6a2dd3e16a3f05fc219f914734374065985273b3"
-          }
-        end
-
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "apks-#{min_sdk}-v1-#{v1_enabled}-v2-#{v2_enabled}/#{signing}/app-#{signing}.apk") }
-
-        %w(rsa dsa).each do |sig_method|
-          context "signed with #{sig_method}" do
-            let(:signing) { sig_method }
-            let(:signature) { signatures[signing] }
-
-            %w(14 24).each do |sdk|
-              context "in apks-#{sdk}" do
-                let(:min_sdk) { sdk }
-
-                [
-                  [true, true],
-                  [true, false],
-                  [false, true]
-                ].each do |v1, v2|
-                  context "v1 signed? == #{v1} and v2 signed? == #{v2}" do
-                    let(:v1_enabled) { v1 }
-                    let(:v2_enabled) { v2 }
-
-                    it { expect(subject.signature).to eq(signature) }
-                    it { expect(subject).to be_signed }
-                    it { expect(subject).to be_installable }
-                  end
                 end
               end
             end

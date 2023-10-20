@@ -9,6 +9,7 @@ require "zip"
 require_relative "android_apk/app_icon"
 require_relative "android_apk/error"
 require_relative "android_apk/resource_finder"
+require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
 
 class AndroidApk
@@ -66,14 +67,9 @@ class AndroidApk
   # @return [String] Return Integer string which is defined in AndroidManifest.xml
   attr_accessor :target_sdk_version
 
-  # The SHA-1 signature of this apk
-  # @return [String, nil] Return nil if cannot extract sha1 hash, otherwise the value will be returned.
-  attr_accessor :signature
-
-  # Check whether or not this apk is verified
-  # @return [Boolean] Return true if this apk is verified, otherwise false.
-  attr_accessor :verified
-  alias verified? verified
+  # The trusted signature lineage. The first element is the same to the signing signature of the apk file.
+  # @return [Array<String>] empty if it's unsigned.
+  attr_reader :trusted_signature_lineage
 
   # Check whether or not this apk is a test mode
   # @return [Boolean] Return true if this apk is a test mode, otherwise false.
@@ -84,6 +80,21 @@ class AndroidApk
   # @deprecated because a file might be moved/removed
   # @return [String] Return a file path of this apk file
   attr_accessor :filepath
+
+  # The SHA-1 signature of this apk
+  # @deprecated
+  # @return [String, nil] Return nil if cannot extract sha1 hash, otherwise the value will be returned.
+  def signature
+    trusted_signature_lineage[0]
+  end
+
+  # Check whether or not this apk is verified
+  # @deprecated this is the same to unsigned i.e. signature is nil
+  # @return [Boolean] Return true if this apk is verified, otherwise false.
+  def verified
+    !trusted_signature_lineage.empty?
+  end
+  alias verified? verified
 
   NOT_ALLOW_DUPLICATE_TAG_NAMES = %w(
     application
@@ -104,6 +115,7 @@ class AndroidApk
   SUPPORTED_DPI_NAMES = DPI_TO_NAME_MAP.values.freeze
 
   module Reason
+    # @deprecated this is the same to Unsigned
     UNVERIFIED = :unverified
     TEST_ONLY = :test_only
     UNSIGNED = :unsigned
@@ -116,6 +128,7 @@ class AndroidApk
   # @raise [AndroidApk::ApkFileNotFoundError] if the filepath doesn't exist
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
+  # rubocop:disable Metrics/AbcSize
   def self.analyze(filepath)
     raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
@@ -178,13 +191,19 @@ class AndroidApk
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
     end.merge(icons_in_arsc)
 
-    read_signature(apk, filepath)
+    apk.instance_variable_set(
+      :@trusted_signature_lineage,
+      ::AndroidApk::SignatureVerifier.verify(
+        filepath: filepath,
+        target_sdk_version: apk.target_sdk_version
+      )
+    )
 
     return apk
   end
+  # rubocop:enable Metrics/AbcSize
 
   def initialize
-    self.verified = false
     self.test_only = false
   end
 
@@ -424,36 +443,6 @@ class AndroidApk
   # @raise [AndroidManifestValidateError] if a key is found in (see NOT_ALLOW_DUPLICATE_TAG_NAMES)
   def self.reject_illegal_duplicated_key!(key)
     raise AndroidManifestValidateError, key if NOT_ALLOW_DUPLICATE_TAG_NAMES.include?(key)
-  end
-
-  def self.read_signature(apk, filepath)
-    # Use target_sdk_version as min sdk version!
-    # Because some of apks are signed by only v2 scheme even though they have 23 and lower min sdk version
-    # The output of the single signing contins Signer #1 but multiple signing a.k.a key rotation just print Signer; It means no #1 prefix.
-    print_certs_command = "apksigner verify --min-sdk-version=#{apk.target_sdk_version} --print-certs #{filepath.shellescape} | grep 'Signer ' | grep 'SHA-1'"
-    certs_hunk, _, exit_status = Open3.capture3(print_certs_command)
-
-    apk.verified = exit_status.success?
-
-    if !exit_status.success? || certs_hunk.nil?
-      # For RSA or DSA encryption
-      print_certs_command = "unzip -p #{filepath.shellescape} META-INF/*.RSA META-INF/*.DSA | openssl pkcs7 -inform DER -text -print_certs | keytool -printcert | grep SHA1:"
-      certs_hunk, _, exit_status = Open3.capture3(print_certs_command)
-    end
-
-    if !exit_status.success? || certs_hunk.nil?
-      # Use a previous method as a fallback just in case
-      print_certs_command = "unzip -p #{filepath.shellescape} META-INF/*.RSA META-INF/*.DSA | keytool -printcert | grep SHA1:"
-      certs_hunk, _, exit_status = Open3.capture3(print_certs_command)
-    end
-
-    if exit_status.success? && !certs_hunk.nil?
-      signatures = certs_hunk.scan(/(?:[0-9a-zA-Z]{2}:?){20}/)
-      # The first seen signer will be the final signer of the apk file.
-      apk.signature = signatures[0].delete(":").downcase
-    else
-      apk.signature = nil # make sure being nil
-    end
   end
 
   # @return [AndroidApk::Xmltree, NilClass]
