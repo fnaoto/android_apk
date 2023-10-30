@@ -342,7 +342,7 @@ class AndroidApk
   # @deprecated single signature is not applicable since scheme v3
   # @return [String, nil] Return nil if cannot extract sha1 hash, otherwise the value will be returned.
   def signature
-    v = app_signature.get_signature(sdk_version: target_sdk_version.to_i)
+    v = app_signature.get_fingerprint(sdk_version: target_sdk_version.to_i)
     v && v[SignatureDigest::SHA1]
   end
 

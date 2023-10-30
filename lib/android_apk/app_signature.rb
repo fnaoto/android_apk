@@ -30,7 +30,7 @@ class AndroidApk
 
     # @param [Integer] sdk_version
     # @return [Hash<String => Any>, nil]
-    def get_signature(sdk_version:)
+    def get_fingerprint(sdk_version:)
       # Ruby doesn't have TreeMap...
       @fingerprints.find do |cert|
         cert.fetch("min_sdk_version") <= sdk_version && sdk_version <= cert.fetch("max_sdk_version")
