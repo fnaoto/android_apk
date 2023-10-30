@@ -2,42 +2,77 @@
 
 class AndroidApk
   module SignatureVerifier
-    SHA1_CAPTURE_REGEX = /(?:[0-9a-zA-Z]{2}:?){20}/.freeze
+    extend self
 
-    class << self
-      # @param filepath [String] an apk filepath (must exist)
-      # @param target_sdk_version [Integer, String] its target sdk version
-      # @return [Array<String>] a signing signature of an apk file with its lineage. Returns an empty array if it's unsigned.
-      def verify(filepath:, target_sdk_version:)
-        # Use target_sdk_version as min sdk version!
-        # Because some of apks are signed by only v2 scheme even though they have 23 and lower min sdk version
-        #
-        # Don't add -v because it will print pub keys too.
-        args = [
-          "apksigner",
-          "verify",
-          "--min-sdk-version",
-          target_sdk_version.to_s,
-          "--print-certs",
-          filepath
-        ]
-        stdout, stderr, exit_status = Open3.capture3(*args)
+    # [0]: entire, [1]: digest
+    SIGNER_SIGNATURE_REGEX = /\ASigner\s.+(?:MD5|SHA-?1|SHA-?256)\sdigest:\s([0-9a-zA-Z]{32,})\s*\z/i.freeze
 
-        unless exit_status.success?
-          return [] if stderr.downcase.include?("does not verify")
+    SCHEME_CASE_INPUTS = [
+      # [min_sdk(inclusive), max_sdk(inclusive)]
 
-          raise AndroidApk::ApkSignerExecutionError, "this file is a malformed apk"
+      # Legacy v1 scheme
+      [
+        1,
+        17
+      ],
+      # SHA256 with RSA is supported since API 18 but still v1 scheme
+      [
+        18,
+        23
+      ],
+      # v2 scheme has been introduced since API 24
+      # v3 and v3.1 are extended from v2, so we don't have to treat v3 and v3.1 specially.
+      # v3 has been introduced since API 28, v3.1 is available since 33 by the way.
+      [
+        24,
+        2_147_483_647
+      ]
+    ]
+
+    def verify(filepath:, min_sdk_version:)
+      min_sdk_version = min_sdk_version.to_i
+
+      SCHEME_CASE_INPUTS.each_with_object([]) do |versions, constraints|
+        min_sdk, max_sdk, = versions
+        min_sdk_version_for_verification = [min_sdk, min_sdk_version].max
+
+        if min_sdk_version <= max_sdk
+          signer_hunks = ::AndroidApk::ApkSigner.verify(
+            filepath: filepath,
+            min_sdk_version: min_sdk_version_for_verification,
+            max_sdk_version: max_sdk
+          )
+
+          if signer_hunks.empty?
+            constraints.push(
+              {
+                "min_sdk_version" => min_sdk_version_for_verification,
+                "max_sdk_version" => max_sdk,
+                ::AndroidApk::SignatureDigest::MD5 => nil,
+                ::AndroidApk::SignatureDigest::SHA1 => nil,
+                ::AndroidApk::SignatureDigest::SHA256 => nil
+              }
+            )
+          else
+            signer_hunks.each do |sdk_versions, signer_lines|
+              # { "sha1" => ..., ... }
+              signature = signer_lines.each_with_object(
+                {
+                  "min_sdk_version" => sdk_versions[0].to_i,
+                  "max_sdk_version" => sdk_versions[1].to_i
+                }
+              ) do |line, acc|
+                if (m = line.match(SIGNER_SIGNATURE_REGEX)) != nil
+                  acc.merge!({ ::AndroidApk::SignatureDigest.judge(digest: m[1]) => m[1] })
+                else
+                  # unknown
+                end
+              end
+
+              constraints.push(signature)
+            end
+          end
         end
-
-        # The output of the single signing contains Signer #1 but multiple signing a.k.a key rotation just print Signer; It means no #1 prefix.
-        sha1_signatures = stdout.split("\n")
-          .filter { |l| l.index("Signer ") && l.index("SHA-1 digest") }
-          .flat_map { |l| l.scan(SHA1_CAPTURE_REGEX) }
-          .map { |sig| sig.delete(":").downcase }
-
-        raise AndroidApk::ParsingSignatureError, "the parser cannot get sha1 signatures" if sha1_signatures.empty?
-
-        sha1_signatures
       end
     end
   end

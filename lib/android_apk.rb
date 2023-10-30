@@ -6,9 +6,13 @@ require "shellwords"
 require "tmpdir"
 require "zip"
 
+require_relative "android_apk/apksigner"
 require_relative "android_apk/app_icon"
+require_relative "android_apk/app_signature"
 require_relative "android_apk/error"
 require_relative "android_apk/resource_finder"
+require_relative "android_apk/signature_digest"
+require_relative "android_apk/signature_lineage_reader"
 require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
 
@@ -67,9 +71,9 @@ class AndroidApk
   # @return [String] Return Integer string which is defined in AndroidManifest.xml
   attr_accessor :target_sdk_version
 
-  # The trusted signature lineage. The first element is the same to the signing signature of the apk file.
-  # @return [Array<String>] empty if it's unsigned.
-  attr_reader :trusted_signature_lineage
+  # An object contains lineages and certificate fingerprints
+  # @return [AndroidApk::AppSignature] a signature representation
+  attr_reader :app_signature
 
   # Check whether or not this apk is a test mode
   # @return [Boolean] Return true if this apk is a test mode, otherwise false.
@@ -80,21 +84,6 @@ class AndroidApk
   # @deprecated because a file might be moved/removed
   # @return [String] Return a file path of this apk file
   attr_accessor :filepath
-
-  # The SHA-1 signature of this apk
-  # @deprecated
-  # @return [String, nil] Return nil if cannot extract sha1 hash, otherwise the value will be returned.
-  def signature
-    trusted_signature_lineage[0]
-  end
-
-  # Check whether or not this apk is verified
-  # @deprecated this is the same to unsigned i.e. signature is nil
-  # @return [Boolean] Return true if this apk is verified, otherwise false.
-  def verified
-    !trusted_signature_lineage.empty?
-  end
-  alias verified? verified
 
   NOT_ALLOW_DUPLICATE_TAG_NAMES = %w(
     application
@@ -192,11 +181,8 @@ class AndroidApk
     end.merge(icons_in_arsc)
 
     apk.instance_variable_set(
-      :@trusted_signature_lineage,
-      ::AndroidApk::SignatureVerifier.verify(
-        filepath: filepath,
-        target_sdk_version: apk.target_sdk_version
-      )
+      :@app_signature,
+      AppSignature.parse(filepath: filepath, min_sdk_version: apk.min_sdk_version)
     )
 
     return apk
@@ -310,31 +296,6 @@ class AndroidApk
     DPI_TO_NAME_MAP[dpi.to_i] || "xxxhdpi"
   end
 
-  # Experimental API!
-  # Check whether or not this apk is installable
-  # @return [Boolean] Return true if this apk is installable, otherwise false.
-  def installable?
-    uninstallable_reasons.empty?
-  end
-
-  # Experimental API!
-  # Reasons why this apk is not installable
-  # @return [Array<Symbol>] Return non-empty symbol array which contain reasons, otherwise an empty array.
-  def uninstallable_reasons
-    reasons = []
-    reasons << Reason::UNVERIFIED unless verified?
-    reasons << Reason::UNSIGNED unless signed?
-    reasons << Reason::TEST_ONLY if test_only?
-    reasons
-  end
-
-  # Whether or not this apk is signed but this depends on (see signature)
-  #
-  # @return [Boolean, nil] this apk is signed if true, otherwise not signed.
-  def signed?
-    !signature.nil?
-  end
-
   def adaptive_icon_density
     min_sdk_version.to_i >= ADAPTIVE_ICON_SDK ? "anydpi" : "anydpi-v26"
   end
@@ -362,6 +323,62 @@ class AndroidApk
     # at least one png icon is required if min sdk version doesn't support adaptive icon
     @backward_compatible_adaptive_icon = icon_xmltree&.adaptive_icon? && SUPPORTED_DPI_NAMES.any? { |d| icon_path_hash[d]&.end_with?(".png") }
   end
+
+  # deprecations
+
+  # The trusted signature lineage. The first element is the same to the signing signature of the apk file.
+  # @return [Array<String>] empty if it's unsigned.
+  def trusted_signature_lineage
+    return [] if app_signature.unsigned?
+
+    if app_signature.lineages.empty?
+      [signature]
+    else
+      app_signature.lineages.map { |l| l[SignatureDigest::SHA1] }.reverse
+    end
+  end
+
+  # The SHA-1 signature of this apk
+  # @deprecated single signature is not applicable since scheme v3
+  # @return [String, nil] Return nil if cannot extract sha1 hash, otherwise the value will be returned.
+  def signature
+    v = app_signature.get_signature(sdk_version: target_sdk_version.to_i)
+    v && v[SignatureDigest::SHA1]
+  end
+
+  # Check whether or not this apk is verified
+  # @deprecated single signature is not applicable since scheme v3
+  # @return [Boolean] Return true if this apk is verified, otherwise false.
+  def verified
+    signature != nil
+  end
+
+  alias verified? verified
+
+  # Whether or not this apk is signed but this depends on (see signature)
+  # @deprecated single signature is not applicable since scheme v3
+  # @return [Boolean, nil] this apk is signed if true, otherwise not signed.
+  def signed?
+    signature != nil
+  end
+
+  # @deprecated this value contains true-negative since scheme v3.1
+  # @return [Boolean] Return true if this apk is installable, otherwise false.
+  def installable?
+    uninstallable_reasons.empty?
+  end
+
+  # @deprecated this value contains true-negative since scheme v3.1
+  # @return [Array<Symbol>] Return non-empty symbol array which contain reasons, otherwise an empty array.
+  def uninstallable_reasons
+    reasons = []
+    reasons << Reason::UNVERIFIED unless verified?
+    reasons << Reason::UNSIGNED unless signed?
+    reasons << Reason::TEST_ONLY if test_only?
+    reasons
+  end
+
+  # end: deprecations
 
   # workaround for https://code.google.com/p/android/issues/detail?id=160847
   def self._parse_values_workaround(str)
