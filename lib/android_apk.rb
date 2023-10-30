@@ -350,7 +350,7 @@ class AndroidApk
   # @deprecated single signature is not applicable since scheme v3
   # @return [Boolean] Return true if this apk is verified, otherwise false.
   def verified
-    signature != nil
+    !signature.nil?
   end
 
   alias verified? verified
