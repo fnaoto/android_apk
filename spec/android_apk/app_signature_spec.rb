@@ -450,4 +450,458 @@ describe AndroidApk::AppSignature do
       it { is_expected.to be_truthy }
     end
   end
+
+  describe "#self.get_target_certificate" do
+    let(:app_signature_to) { AndroidApk::AppSignature.new(lineages: lineages_to, fingerprints: fingerprints_to) }
+    let(:sdk_version) { 24 }
+
+    subject { AndroidApk::AppSignature.get_target_certificate(certificate_from: certificate_from, lineages_from: lineages_from, app_signature_to: app_signature_to, sdk_version: sdk_version) }
+
+    let(:certificate_a) do
+      {
+        "md5" => "b45d97c0330628008c56837ad9612103",
+        "sha1" => "4ad4e4376face4e441a3b8802363a7f6c6b458ab",
+        "sha256" => "901ee5b342ed8c0552196f9347c009e2864af44ac0e77ab7f4cca431d1692119"
+      }
+    end
+    let(:certificate_b) do
+      {
+        "md5" => "08c56837ad961210b45d97c033062803",
+        "sha1" => "a3b8802363a7f6c6b458ab4ad4e4376face4e441",
+        "sha256" => "c0552196f9347c009e2864af44ac0e77ab901ee5b342ed87f4cca431d1692119"
+      }
+    end
+    let(:certificate_c) do
+      {
+        "md5" => "30628008c56837ad9612b45d97c03103",
+        "sha1" => "7f6c6b4584ad4e4376face4e441a3b8802363aab",
+        "sha256" => "4cca431d169211901ee5b342ed8c0552196f9347c009e2864af44ac0e77ab7f9"
+      }
+    end
+
+    context "if the current apk is not rotated (cert a)" do
+      let(:lineages_from) { [] }
+      let(:certificate_from) { certificate_a }
+
+      context "if the target apk is unsigned" do
+        let(:lineages_to) { [] }
+        let(:fingerprints_to) { [] }
+
+        it { is_expected.to be_nil }
+      end
+
+      context "if the target apk is not rotated" do
+        let(:lineages_to) { [] }
+
+        context "and it's the same to the current one" do
+          let(:fingerprints_to) do
+            [
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(certificate_from)
+            ]
+          end
+
+          it "behaves as direct-update" do
+            is_expected.to eq(certificate_from)
+          end
+        end
+
+        context "and it's signed by certificate b" do
+          let(:fingerprints_to) do
+            [
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(certificate_b)
+            ]
+          end
+
+          it { is_expected.to be_nil }
+        end
+
+        context "and it's rotated" do
+          context "but the new signer is the current one: c -> a" do
+            let(:lineages_to) do
+              [
+                {
+                  "installed data" => true,
+                  "shared uid" => true,
+                  "permission" => true,
+                  "rollback" => false,
+                  "auth" => true
+                }.merge(certificate_c),
+                {
+                  "installed data" => true,
+                  "shared uid" => true,
+                  "permission" => true,
+                  "rollback" => false,
+                  "auth" => true
+                }.merge(certificate_from)
+              ]
+            end
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 32
+                }.merge(certificate_c),
+                {
+                  "min_sdk_version" => 33,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(certificate_from)
+              ]
+            end
+
+            context "if the device does not support key rotation" do
+              let(:sdk_version) { 27 }
+
+              it { is_expected.to be_nil }
+            end
+
+            context "if the device supports key rotation" do
+              let(:sdk_version) { 33 }
+
+              it "behaves as it's direct update" do
+                is_expected.to eq(certificate_from)
+              end
+            end
+          end
+
+          context "but the previous signer is the current one: a -> c" do
+            let(:lineages_to) do
+              [
+                {
+                  "installed data" => true,
+                  "shared uid" => true,
+                  "permission" => true,
+                  "rollback" => false,
+                  "auth" => true
+                }.merge(certificate_from),
+                {
+                  "installed data" => true,
+                  "shared uid" => true,
+                  "permission" => true,
+                  "rollback" => false,
+                  "auth" => true
+                }.merge(certificate_c)
+              ]
+            end
+
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 32
+                }.merge(certificate_from),
+                {
+                  "min_sdk_version" => 33,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(certificate_c)
+              ]
+            end
+
+            context "if the device does not support key rotation" do
+              let(:sdk_version) { 27 }
+
+              it "behaves as it's direct update" do
+                is_expected.to eq(certificate_from)
+              end
+            end
+
+            context "if the device supports key rotation" do
+              let(:sdk_version) { 33 }
+
+              it "consumed key-rotation" do
+                is_expected.to eq(certificate_c)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    context "if the current apk is rotated with a -> c" do
+      let(:allow_rollback) { false }
+      let(:lineages_from) do
+        [
+          {
+            "installed data" => true,
+            "shared uid" => true,
+            "permission" => true,
+            "rollback" => allow_rollback,
+            "auth" => true
+          }.merge(certificate_a),
+          {
+            "installed data" => true,
+            "shared uid" => true,
+            "permission" => true,
+            "rollback" => false,
+            "auth" => true
+          }.merge(certificate_c)
+        ]
+      end
+
+      context "if the device does not support v3" do
+        let(:sdk_version) { 27 }
+        let(:certificate_from) { lineages_from.first.slice("md5", "sha1", "sha256") }
+
+        context "if the target apk is unsigned" do
+          let(:lineages_to) { [] }
+          let(:fingerprints_to) { [] }
+
+          it { is_expected.to be_nil }
+        end
+
+        context "if the target apk is not rotated" do
+          let(:lineages_to) { [] }
+
+          context "and it's the same to the current one" do
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(certificate_from)
+              ]
+            end
+
+            it "behaves as it's direct update" do
+              is_expected.to eq(certificate_from)
+            end
+          end
+
+          context "and it's signed by certificate b" do
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(certificate_b)
+              ]
+            end
+
+            it { is_expected.to be_nil }
+          end
+
+          context "and it's rotated" do
+            context "but the new signer is the current one: b -> a" do
+              let(:lineages_to) do
+                [
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_b),
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_from)
+                ]
+              end
+              let(:fingerprints_to) do
+                [
+                  {
+                    "min_sdk_version" => 24,
+                    "max_sdk_version" => 32
+                  }.merge(certificate_b),
+                  {
+                    "min_sdk_version" => 33,
+                    "max_sdk_version" => 2_147_483_647,
+                  }.merge(certificate_from)
+                ]
+              end
+
+              it { is_expected.to be_nil }
+            end
+
+            context "the previous signer is the current one: a -> b" do
+              let(:lineages_to) do
+                [
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true,
+                  }.merge(certificate_from),
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_b),
+                ]
+              end
+              let(:fingerprints_to) do
+                [
+                  {
+                    "min_sdk_version" => 24,
+                    "max_sdk_version" => 32
+                  }.merge(certificate_from),
+                  {
+                    "min_sdk_version" => 33,
+                    "max_sdk_version" => 2_147_483_647
+                  }.merge(certificate_b),
+                ]
+              end
+
+              it "behaves as it's direct update" do
+                is_expected.to eq(certificate_from)
+              end
+            end
+          end
+        end
+      end
+
+      context "if the device supports v3" do
+        let(:sdk_version) { 33 }
+        let(:certificate_from) { lineages_from.last.slice("md5", "sha1", "sha256") }
+
+        context "if the target apk is unsigned" do
+          let(:lineages_to) { [] }
+          let(:fingerprints_to) { [] }
+
+          it { is_expected.to be_nil }
+        end
+
+        context "if the target apk is not rotated" do
+          let(:lineages_to) { [] }
+
+          context "and it's the same to the current one" do
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(certificate_from)
+              ]
+            end
+
+            it "behaves as it's direct update" do
+              is_expected.to eq(certificate_from)
+            end
+          end
+
+          context "and it's signed by certificate b" do
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(certificate_b)
+              ]
+            end
+
+            it { is_expected.to be_nil }
+          end
+
+          context "and it's signed by the previous signer" do
+            let(:previous_certificate) { lineages_from.first.slice("md5", "sha1", "sha256") }
+            let(:fingerprints_to) do
+              [
+                {
+                  "min_sdk_version" => 24,
+                  "max_sdk_version" => 2_147_483_647
+                }.merge(previous_certificate)
+              ]
+            end
+
+            it { is_expected.to be_nil }
+
+            context "if it has rollback capability" do
+              let(:allow_rollback) { true }
+
+              it "can rollback" do
+                is_expected.to eq(previous_certificate)
+              end
+            end
+          end
+
+          context "and it's rotated" do
+            context "but the new signer is the current one: b -> a" do
+              let(:lineages_to) do
+                [
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_b),
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_from)
+                ]
+              end
+              let(:fingerprints_to) do
+                [
+                  {
+                    "min_sdk_version" => 24,
+                    "max_sdk_version" => 32
+                  }.merge(certificate_b),
+                  {
+                    "min_sdk_version" => 33,
+                    "max_sdk_version" => 2_147_483_647
+                  }.merge(certificate_from)
+                ]
+              end
+
+              it "behaves as it's direct update" do
+                is_expected.to eq(certificate_from)
+              end
+            end
+
+            context "the previous signer is the current one: a -> b" do
+              let(:lineages_to) do
+                [
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_from),
+                  {
+                    "installed data" => true,
+                    "shared uid" => true,
+                    "permission" => true,
+                    "rollback" => false,
+                    "auth" => true
+                  }.merge(certificate_b),
+                ]
+              end
+              let(:fingerprints_to) do
+                [
+                  {
+                    "min_sdk_version" => 24,
+                    "max_sdk_version" => 32,
+                  }.merge(certificate_from),
+                  {
+                    "min_sdk_version" => 33,
+                    "max_sdk_version" => 2_147_483_647
+                  }.merge(certificate_b),
+                ]
+              end
+
+              it "consumes key-rotation" do
+                is_expected.to eq(certificate_b)
+              end
+            end
+          end
+        end
+      end
+    end
+  end
 end
