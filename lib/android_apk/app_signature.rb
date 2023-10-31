@@ -36,8 +36,8 @@ class AndroidApk
           ::AndroidApk::SignatureDigest::SHA256
         ) or return
 
-        # Direct update
-        if target_certificate == certificate_from.slice(*target_certificate.keys)
+        # It's enough to check if only their sha256 are matched.
+        if target_certificate[::AndroidApk::SignatureDigest::SHA256] == certificate_from[::AndroidApk::SignatureDigest::SHA256]
           return target_certificate
         end
 
@@ -51,13 +51,15 @@ class AndroidApk
       end
 
       private def valid_key_rotation?(lineages_from:, lineages_to:, target_certificate:)
-        unless (rollback_to = lineages_from.find { |lineage| lineage.slice(*target_certificate.keys) == target_certificate }).nil?
+        target_sha256 = target_certificate[::AndroidApk::SignatureDigest::SHA256]
+
+        unless (rollback_to = lineages_from.find { |lineage| lineage[::AndroidApk::SignatureDigest::SHA256] == target_sha256 }).nil?
           # rollback capability is required to update the app to the previous certificate
           return rollback_to["rollback"]
         end
 
         # Key rotation can be consumed if the target apk contains the current signing signature.
-        lineages_to.any? { |lineage| lineage.slice(*target_certificate.keys) == target_certificate }
+        lineages_to.any? { |lineage| lineage[::AndroidApk::SignatureDigest::SHA256] == target_sha256 }
       end
     end
 
