@@ -90,6 +90,9 @@ class AndroidApk
 
     private def merge_fingerprints(fingerprints:)
       merged_fingerprints = fingerprints.each_with_object([]) do |fingerprint, acc|
+        # SKip unsigned span
+        next if fingerprint[::AndroidApk::SignatureDigest::SHA256].nil?
+
         if !(last_entry = acc.last).nil? && (last_entry.fetch(::AndroidApk::SignatureDigest::SHA256) == fingerprint.fetch(::AndroidApk::SignatureDigest::SHA256))
           last_max_sdk_version = last_entry.fetch("max_sdk_version")
           min_sdk_version = fingerprint.fetch("min_sdk_version")
