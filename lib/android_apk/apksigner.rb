@@ -62,7 +62,10 @@ class AndroidApk
         end
 
         signers[signer_index] ||= []
-        signers[signer_index].push(line)
+
+        if line.start_with?("Has") || !line.include?("DN: CN")
+          signers[signer_index].push(line)
+        end
       end
 
       signers.compact
@@ -71,10 +74,9 @@ class AndroidApk
     module_function def split_verify_signer_hunks(stdout:, min_sdk_version:, max_sdk_version:)
       signers = {}
 
-      lines = stdout.split("\n").reject { |line| line.include?("WARNING") }
+      lines = stdout.split("\n").reject { |line| line.include?("WARNING") || line.include?("DN: CN") }
 
-      # Skip the 1st "DN" line
-      if lines[1].include?("minSdkVersion=")
+      if lines[0].include?("minSdkVersion=")
         lines.each do |line|
           next if (m = line.match(TARGET_SDK_PART_REGEX)).nil?
 
