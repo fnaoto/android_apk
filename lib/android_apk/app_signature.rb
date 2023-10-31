@@ -26,6 +26,7 @@ class AndroidApk
     def initialize(lineages:, fingerprints:)
       @fingerprints = merge_fingerprints(fingerprints: fingerprints).freeze
       @lineages = @fingerprints.empty? ? [].freeze : lineages.freeze # drop if unsigned
+      raise "lineages must be an empty or a list of 2 or more elements" if @lineages.size == 1
     end
 
     # @param [Integer] sdk_version
@@ -39,6 +40,10 @@ class AndroidApk
 
     def unsigned?
       @fingerprints.empty?
+    end
+
+    def rotated?
+      !@lineages.empty?
     end
 
     private def merge_fingerprints(fingerprints:)
