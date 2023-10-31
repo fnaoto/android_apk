@@ -56,14 +56,6 @@ describe AndroidApk::AppSignature do
       it "returns a ranged information that covert the given sdk version" do
         expect(app_signature.fingerprints).to match_array(
           [
-
-            {
-              "min_sdk_version" => 15,
-              "max_sdk_version" => 23,
-              "md5" => nil,
-              "sha1" => nil,
-              "sha256" => nil
-            },
             {
               "min_sdk_version" => 24,
               "max_sdk_version" => 2_147_483_647,
@@ -207,15 +199,7 @@ describe AndroidApk::AppSignature do
             "sha256" => "901ee5b342ed8c0552196f9347c009e2864af44ac0e77ab7f4cca431d1692119"
           }
         )
-        expect(app_signature.get_fingerprint(sdk_version: 16)).to eq(
-          {
-            "min_sdk_version" => 15,
-            "max_sdk_version" => 23,
-            "md5" => nil,
-            "sha1" => nil,
-            "sha256" => nil
-          }
-        )
+        expect(app_signature.get_fingerprint(sdk_version: 16)).to be_nil
       end
     end
 
