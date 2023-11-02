@@ -40,7 +40,6 @@ class AndroidApk
 
         # lines that start with "spec" are already rejected
         index = 0
-
         while index < lines.size
 
           line = lines[index]
@@ -50,7 +49,7 @@ class AndroidApk
 
           # drop until a config block will be found
           next unless (config = line.match(/config\s+(?'dpi'.+):/)&.named_captures&.dig("dpi"))
-          next unless line.index("(default)") || line.index("dpi")
+          next unless config == "(default)" || config.index("dpi")
 
           while index < lines.size
             line = lines[index]
@@ -67,7 +66,7 @@ class AndroidApk
             index += 1
 
             # if path node is present, it never nil
-            if (png_file_path = line.match(/\(string8\) "(?'path'.+)"/)&.named_captures&.dig("path")).nil?
+            if (png_file_path = line.match(/\(string\d+\)\s+"(?'path'.+)"/)&.named_captures&.dig("path")).nil?
               ::AndroidApk.logger.warn("#{line} does not contain a valid filepath")
             else
               config_hash[config] = png_file_path
