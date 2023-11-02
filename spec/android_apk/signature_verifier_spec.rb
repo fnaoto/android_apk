@@ -47,17 +47,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information of the previous signer" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 23
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 24,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 23
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -66,21 +66,21 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for 33 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 23
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 24,
-                                   "max_sdk_version" => 32
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 33,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 23
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 32
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 33,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -89,17 +89,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for 24 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 23
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 24,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 23
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -108,13 +108,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for devices that do not support v2" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 23
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 23
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -123,13 +123,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for devices that support v2" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => 24,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -138,17 +138,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for devices that support v2 and new signer applied only for API 33 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => 24,
-                                   "max_sdk_version" => 32
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 33,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 32
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 33,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -157,13 +157,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for API 24 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => 24,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => 24,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
     end
@@ -176,13 +176,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information of the previous signer" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -191,17 +191,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for 33 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 32
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 33,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 32
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 33,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -210,13 +210,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for 27 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -233,13 +233,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -248,17 +248,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for devices that support v2 and new signer applied only for API 33 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 32
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 33,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 32
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 33,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -267,13 +267,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
     end
@@ -286,13 +286,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information of the previous signer" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -301,17 +301,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for 33 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 32
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 33,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 32
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 33,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -320,13 +320,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information but new signer is applied only for 32 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -343,13 +343,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -358,17 +358,17 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for devices that support v2 and new signer applied only for API 33 or later" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 32
-                                 }.merge(previous_certificate),
-                                 {
-                                   "min_sdk_version" => 33,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 32
+              }.merge(previous_certificate),
+              {
+                "min_sdk_version" => 33,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -377,13 +377,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
     end
@@ -396,13 +396,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information of the previous signer" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -411,13 +411,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information of the new signer" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -426,13 +426,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -449,13 +449,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(previous_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(previous_certificate)
+            ]
+          )
         end
       end
 
@@ -464,13 +464,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
 
@@ -479,13 +479,13 @@ describe AndroidApk::SignatureVerifier do
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
           expect(subject).to match_array(
-                               [
-                                 {
-                                   "min_sdk_version" => min_sdk_version,
-                                   "max_sdk_version" => 2_147_483_647
-                                 }.merge(new_certificate)
-                               ]
-                             )
+            [
+              {
+                "min_sdk_version" => min_sdk_version,
+                "max_sdk_version" => 2_147_483_647
+              }.merge(new_certificate)
+            ]
+          )
         end
       end
     end

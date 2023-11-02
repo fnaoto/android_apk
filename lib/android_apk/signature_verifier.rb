@@ -31,7 +31,7 @@ class AndroidApk
     module_function def verify(filepath:, min_sdk_version:)
       min_sdk_version = min_sdk_version.to_i
 
-      SCHEME_CASE_INPUTS.each_with_object([]) { |versions, constraints|
+      SCHEME_CASE_INPUTS.each_with_object([]) do |versions, constraints|
         min_sdk, max_sdk, = versions
         next unless min_sdk_version <= max_sdk
 
@@ -58,7 +58,7 @@ class AndroidApk
 
           constraints.push(signature)
         end
-      }
+      end
     end
   end
 end
