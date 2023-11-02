@@ -36,7 +36,7 @@ jobs:
         java-version:
           - 11
         buildtools-version:
-          - 33.0.2
+          - 34.0.0
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: ruby/setup-ruby@54a18e26dbbb1eabc604f317ade9a5788dddef81
