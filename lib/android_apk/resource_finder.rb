@@ -66,9 +66,9 @@ class AndroidApk
             line = lines[index]
             index += 1
 
-            png_file_path = line.match(/"(?'path'.+)"/)&.named_captures&.dig("path") # never nil
+            png_file_path = line.match(/"(?'path'.+)"/)&.named_captures&.dig("path") # if path node is present, it never nil
 
-            config_hash[config] = png_file_path
+            config_hash[config] = png_file_path unless png_file_path.nil?
           end
         end
 
