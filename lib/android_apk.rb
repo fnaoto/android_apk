@@ -22,6 +22,16 @@ class AndroidApk
 
   DEFAULT_RESOURCE_CONFIG = "(default)" # very special config
 
+  class << self
+    def logger=(logger)
+      @logger = logger
+    end
+
+    def logger
+      @logger ||= Logger.new(STDOUT)
+    end
+  end
+
   # Dump result which was parsed manually
   # @return [Hash] Return a parsed result of aapt dump
   attr_accessor :results
