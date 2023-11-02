@@ -65,8 +65,8 @@ class AndroidApk
 
   # Min sdk version of this apk
   # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_reader :sdk_version
-  alias min_sdk_version sdk_version
+  attr_reader :min_sdk_version
+  alias sdk_version min_sdk_version
 
   # Target sdk version of this apk
   # @return [String] Return Integer string which is defined in AndroidManifest.xml
@@ -163,7 +163,7 @@ class AndroidApk
     @version_name = vars["package"]["versionName"] || ""
 
     # platforms
-    @sdk_version = vars["sdkVersion"]
+    @min_sdk_version = vars["sdkVersion"]
     @target_sdk_version = vars["targetSdkVersion"]
 
     # icons and labels
@@ -188,10 +188,7 @@ class AndroidApk
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
     end.merge(icons_in_arsc)
 
-    apk.instance_variable_set(
-      :@app_signature,
-      AppSignature.parse(filepath: filepath, min_sdk_version: apk.min_sdk_version)
-    )
+    @app_signature = AppSignature.parse(filepath: filepath, min_sdk_version: @min_sdk_version)
   end
 
   # @return [Array<AndroidApk::AppIcon>]
