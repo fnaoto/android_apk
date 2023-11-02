@@ -6,7 +6,7 @@ class AndroidApk
       # @param apk_filepath [String] apk file path
       # @param default_icon_path [String, NilClass]
       # @return [Hash] keys are dpi human readable names, values are png file paths that are relative
-      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       def resolve_icons_in_arsc(apk_filepath:, default_icon_path:)
         return {} if default_icon_path.nil? || default_icon_path.empty?
 
@@ -67,10 +67,10 @@ class AndroidApk
             index += 1
 
             # if path node is present, it never nil
-            if !(png_file_path = line.match(/\(string8\) "(?'path'.+)"/)&.named_captures&.dig("path")).nil?
-              config_hash[config] = png_file_path
-            else
+            if (png_file_path = line.match(/\(string8\) "(?'path'.+)"/)&.named_captures&.dig("path")).nil?
               ::AndroidApk.logger.warn("#{line} does not contain a valid filepath")
+            else
+              config_hash[config] = png_file_path
             end
 
             break
@@ -79,7 +79,7 @@ class AndroidApk
 
         config_hash
       end
-      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
       def dump_resource_values(apk_filepath:)
         stdout, _, status = Open3.capture3("aapt", "dump", "--values", "resources", apk_filepath)
