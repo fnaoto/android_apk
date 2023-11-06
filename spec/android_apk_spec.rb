@@ -154,32 +154,24 @@ describe "AndroidApk" do
         end
       end
 
-      context "unsigned.apk " do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "other", "unsigned.apk") }
+      context "for each signature-aware apks" do
+        Dir.glob(File.join(FIXTURE_DIR, "scheme-combination-apks", "**/*.apk")).each do |path|
+          context "if an apk is #{path}" do
+            let(:apk_filepath) { path }
 
-        include_examples :analyzable
+            include_examples :analyzable
 
-        it "should not be signed" do
-          expect(subject.signed?).to be_falsey
+            if path.include?("unsigned")
+              it "should not be signed" do
+                expect(subject.signed?).to be_falsey
+              end
+
+              it "should not expose signature" do
+                expect(subject.signature).to be_nil
+              end
+            end
+          end
         end
-
-        it "should not expose signature" do
-          expect(subject.signature).to be_nil
-        end
-
-        it "should not be installable" do
-          expect(subject.installable?).to be_falsey
-        end
-
-        it "should have unsigned state" do
-          expect(subject.uninstallable_reasons).to include(AndroidApk::Reason::UNSIGNED)
-        end
-      end
-
-      context "signature v3" do
-        let(:apk_filepath) { File.join(FIXTURE_DIR, "signatures", "signature-v3", "app-rotated.apk") }
-
-        include_examples :analyzable
       end
 
       describe "resource aware specs" do
