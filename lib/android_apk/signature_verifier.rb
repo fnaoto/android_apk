@@ -8,7 +8,7 @@ class AndroidApk
     # [min_sdk(inclusive), max_sdk(inclusive)]
     SCHEME_CASE_INPUTS = [
       [
-        8,
+        9,
         17
       ],
       # SHA256 with RSA is supported since API 18 but still v1 scheme

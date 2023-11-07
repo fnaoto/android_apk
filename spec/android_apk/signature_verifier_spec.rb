@@ -44,126 +44,189 @@ describe AndroidApk::SignatureVerifier do
 
       context "if an apk is v1-and-v2 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-and-v2.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 23
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 24,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information of the previous signer" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 23
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 24,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-and-v2-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-and-v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 23
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 24,
+              "max_sdk_version" => 32
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 33,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for 33 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 23
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 24,
-                "max_sdk_version" => 32
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 33,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-and-v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-and-v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 23
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 24,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for 24 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 23
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 24,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-and-v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-only scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-only.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 23
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for devices that do not support v2" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 23
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v1-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v2-only scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v2-only.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => 24,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for devices that support v2" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => 24,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v2-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => 24,
+              "max_sdk_version" => 32
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 33,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for devices that support v2 and new signer applied only for API 33 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => 24,
-                "max_sdk_version" => 32
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 33,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3-scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => 24,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for API 24 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => 24,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "m-v2required", "v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
     end
@@ -173,50 +236,77 @@ describe AndroidApk::SignatureVerifier do
 
       context "if an apk is v1-and-v2 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-and-v2.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information of the previous signer" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-and-v2-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-and-v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 32
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 33,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for 33 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 32
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 33,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-and-v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-and-v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for 27 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-and-v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
@@ -226,54 +316,89 @@ describe AndroidApk::SignatureVerifier do
         it "returns an empty array" do
           expect(subject).to be_empty
         end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v1-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to be_empty
+          end
+        end
       end
 
       context "if an apk is v2-only scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v2-only.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v2-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 32
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 33,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for devices that support v2 and new signer applied only for API 33 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 32
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 33,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3-scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "o1-v2required", "v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
     end
@@ -283,50 +408,77 @@ describe AndroidApk::SignatureVerifier do
 
       context "if an apk is v1-and-v2 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-and-v2.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information of the previous signer" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-and-v2-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-and-v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 32
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 33,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for 33 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 32
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 33,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-and-v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-and-v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information but new signer is applied only for 32 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-and-v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
@@ -336,54 +488,89 @@ describe AndroidApk::SignatureVerifier do
         it "returns an empty array" do
           expect(subject).to be_empty
         end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v1-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to be_empty
+          end
+        end
       end
 
       context "if an apk is v2-only scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v2-only.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v2-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 32
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 33,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for devices that support v2 and new signer applied only for API 33 or later" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 32
-              }.merge(previous_certificate),
-              {
-                "min_sdk_version" => 33,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3-scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "s2-v2required", "v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
     end
@@ -393,46 +580,73 @@ describe AndroidApk::SignatureVerifier do
 
       context "if an apk is v1-and-v2 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-and-v2.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information of the previous signer" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-and-v2-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-and-v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information of the new signer" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-and-v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v1-and-v3 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-and-v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-and-v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
@@ -442,50 +656,85 @@ describe AndroidApk::SignatureVerifier do
         it "returns an empty array" do
           expect(subject).to be_empty
         end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v1-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to be_empty
+          end
+        end
       end
 
       context "if an apk is v2-only scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v2-only.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(previous_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(previous_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v2-only-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3.1 scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v3.1.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v3.1-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
 
       context "if an apk is v3-scheme" do
         let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v3.apk") }
+        let(:expected_fingerprints) do
+          [
+            {
+              "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 2_147_483_647
+            }.merge(new_certificate)
+          ]
+        end
 
         it "returns sdk-ranged certificate information and new signer is applied only for all devices" do
-          expect(subject).to match_array(
-            [
-              {
-                "min_sdk_version" => min_sdk_version,
-                "max_sdk_version" => 2_147_483_647
-              }.merge(new_certificate)
-            ]
-          )
+          expect(subject).to match_array(expected_fingerprints)
+        end
+
+        context "with source stamp" do
+          let(:apk_filepath) { File.join(FIXTURE_DIR, "scheme-combination-apks", "t-v2required", "v3-with-source-stamp.apk") }
+
+          it "returns the same results without source stamp" do
+            expect(subject).to match_array(expected_fingerprints)
+          end
         end
       end
     end
