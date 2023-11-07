@@ -29,7 +29,7 @@ class AndroidApk
     # @param min_sdk_version [String, Integer] min sdk version to verify
     # @param max_sdk_version [String, Integer] max sdk version to verify
     # @return [Hash<String => Array<String>>] a map of lines for each target sdk version range
-    module_function def verify(filepath:, min_sdk_version:, max_sdk_version:)
+    module_function def print_certs(filepath:, min_sdk_version:, max_sdk_version:)
       # Don't add -v because it will print pub keys too.
       args = [
         "apksigner",
