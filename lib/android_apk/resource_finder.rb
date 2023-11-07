@@ -6,6 +6,7 @@ class AndroidApk
       # @param apk_filepath [String] apk file path
       # @param default_icon_path [String, NilClass]
       # @return [Hash] keys are dpi human readable names, values are png file paths that are relative
+      # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       def resolve_icons_in_arsc(apk_filepath:, default_icon_path:)
         return {} if default_icon_path.nil? || default_icon_path.empty?
 
@@ -39,7 +40,6 @@ class AndroidApk
 
         # lines that start with "spec" are already rejected
         index = 0
-
         while index < lines.size
 
           line = lines[index]
@@ -49,31 +49,36 @@ class AndroidApk
 
           # drop until a config block will be found
           next unless (config = line.match(/config\s+(?'dpi'.+):/)&.named_captures&.dig("dpi"))
+          next unless config == "(default)" || config.index("dpi")
 
           while index < lines.size
             line = lines[index]
-            index += 1
 
-            if line.index("config ")
-              index -= 1
-              break
-            end
+            break if line.index("config ")
+
+            index += 1
 
             # drop until a line contains <resource_name>
             next unless line.index(resource_name)
 
-            # Next line contains the filepath and never contain a config block header
+            # Next line may contain the filepath and never contain a config block header
             line = lines[index]
             index += 1
 
-            png_file_path = line.match(/"(?'path'.+)"/)&.named_captures&.dig("path") # never nil
+            # if path node is present, it never nil
+            if (png_file_path = line.match(/\(string\d+\)\s+"(?'path'.+)"/)&.named_captures&.dig("path")).nil?
+              ::AndroidApk.logger.warn("#{line} does not contain a valid filepath")
+            else
+              config_hash[config] = png_file_path
+            end
 
-            config_hash[config] = png_file_path
+            break
           end
         end
 
         config_hash
       end
+      # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
       def dump_resource_values(apk_filepath:)
         stdout, _, status = Open3.capture3("aapt", "dump", "--values", "resources", apk_filepath)

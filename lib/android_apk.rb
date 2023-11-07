@@ -22,6 +22,14 @@ class AndroidApk
 
   DEFAULT_RESOURCE_CONFIG = "(default)" # very special config
 
+  class << self
+    attr_writer :logger
+
+    def logger
+      @logger ||= Logger.new($stdout)
+    end
+  end
+
   # Dump result which was parsed manually
   # @deprecated don't expose this field
   # @return [Hash] Return a parsed result of aapt dump
