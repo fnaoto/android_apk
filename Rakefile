@@ -5,8 +5,6 @@ require "rspec/core/rake_task"
 require "rubocop/rake_task"
 require "rdoc/task"
 
-require_relative "lib/version"
-
 begin
   Bundler.setup(:default, :development)
 rescue Bundler::BundlerError => e
