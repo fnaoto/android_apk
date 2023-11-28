@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
+
+
 class AndroidApk
   # @!attribute [r] fingerprints
   #   @return [Array<Hash<String => Any>>]
   # @!attribute [r] lineages
   #   @return [Array<Hash<String => Any>>]
   class AppSignature
-    V2_SCHEME_SDK_INT = 24
-    V3_SCHEME_SDK_INT = 28
-    V3_1_SCHEME_SDK_INT = 33
+    autoload :V2_SCHEME_SDK_INT, 'signature_verifier'
+    autoload :V3_SCHEME_SDK_INT, 'signature_verifier'
+    autoload :V3_1_SCHEME_SDK_INT, 'signature_verifier'
 
     class << self
       # @param [String] filepath to an apk file
