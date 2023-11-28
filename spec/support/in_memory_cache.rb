@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AndroidApk
   class << self
     alias original_analyze analyze
@@ -7,6 +9,7 @@ class AndroidApk
 
       if caller_in_gem.include?("/android_apk/spec/")
         raise "cache implementation should be re-considered" if args.size != 1
+
         @_rspec_caches ||= {}
         @_rspec_caches[args[0]] ||= original_analyze(*args)
       else
