@@ -2,6 +2,16 @@
 
 class AndroidApk
   module SignatureVerifier
+    # SHA256 with RSA is supported since API 18 but still v1 scheme
+    V1_SHA256_RSA_SDK_INT = 18
+    V2_SCHEME_SDK_INT = 24
+    V3_SCHEME_SDK_INT = 28
+    V3_1_SCHEME_SDK_INT = 33
+    DEFAULT_MAX_SDK_INT = 2_147_483_647
+
+    # Actually, this should be 30 by spec but apksigner detect only if max sdk is 33 or higher ;(
+    V2_REQUIRED_SDK_INT_FOR_APKSIGNER = 33
+
     # [0]: entire, [1]: digest
     SIGNER_SIGNATURE_REGEX = /\ASigner\s.+(?:MD5|SHA-?1|SHA-?256)\sdigest:\s([0-9a-zA-Z]{32,})\s*\z/i.freeze
 
@@ -9,19 +19,22 @@ class AndroidApk
     SCHEME_CASE_INPUTS = [
       [
         9,
-        17
+        V1_SHA256_RSA_SDK_INT - 1
       ],
-      # SHA256 with RSA is supported since API 18 but still v1 scheme
+      # Only this range can detect fingerprints of v1 scheme correctly including sha256 w/ rsa
       [
-        18,
-        23
+        V1_SHA256_RSA_SDK_INT,
+        V2_SCHEME_SDK_INT - 1
       ],
-      # v2 scheme has been introduced since API 24
-      # v3 and v3.1 are extended from v2, so we don't have to treat v3 and v3.1 specially.
-      # v3 has been introduced since API 28, v3.1 is available since 33 by the way.
+      # Only this range can detect fingerprints of v3 scheme correctly for devices that do not support v3 scheme
       [
-        24,
-        2_147_483_647
+        V2_SCHEME_SDK_INT,
+        V3_SCHEME_SDK_INT - 1
+      ],
+      # This range can return fingerprints v2 or v2+ correctly
+      [
+        V3_SCHEME_SDK_INT,
+        DEFAULT_MAX_SDK_INT
       ]
     ].freeze
 
@@ -31,9 +44,27 @@ class AndroidApk
     module_function def verify(filepath:, min_sdk_version:)
       min_sdk_version = min_sdk_version.to_i
 
-      SCHEME_CASE_INPUTS.each_with_object([]) do |versions, constraints|
+      skip_v2_requirement_check = false
+
+      collected_fingerprints = SCHEME_CASE_INPUTS.each_with_object([]) do |versions, fingerprints|
         min_sdk, max_sdk, = versions
         next unless min_sdk_version <= max_sdk
+
+        min_sdk_for_verification = [min_sdk, min_sdk_version].max
+
+        if !skip_v2_requirement_check && min_sdk_for_verification >= V2_SCHEME_SDK_INT && max_sdk < V2_REQUIRED_SDK_INT_FOR_APKSIGNER
+          skip_v2_requirement_check = true
+
+          # If this apk has no v2 or v2+ schemes, this verification must fail.
+          # The results of this verification cannot be used because of v3 scheme's flaw...
+          invalid_v2_or_higher = ::AndroidApk::ApkSigner.print_certs(
+            filepath: filepath,
+            min_sdk_version: min_sdk_for_verification,
+            max_sdk_version: DEFAULT_MAX_SDK_INT
+          ).empty?
+
+          break fingerprints if invalid_v2_or_higher
+        end
 
         signer_hunks = ::AndroidApk::ApkSigner.print_certs(
           filepath: filepath,
@@ -56,9 +87,34 @@ class AndroidApk
             end
           end
 
-          constraints.push(signature)
+          fingerprints.push(signature)
         end
       end
+
+      merge_fingerprints(fingerprints: collected_fingerprints)
+    end
+
+    module_function def merge_fingerprints(fingerprints:)
+      merged_fingerprints = fingerprints.sort_by { |f| f.fetch("min_sdk_version") }.each_with_object([]) do |fingerprint, acc|
+        # SKip unsigned span
+        next if fingerprint[::AndroidApk::SignatureDigest::SHA256].nil?
+
+        if !(last_entry = acc.last).nil? && (last_entry.fetch(::AndroidApk::SignatureDigest::SHA256) == fingerprint.fetch(::AndroidApk::SignatureDigest::SHA256))
+          last_max_sdk_version = last_entry.fetch("max_sdk_version")
+          min_sdk_version = fingerprint.fetch("min_sdk_version")
+
+          if last_max_sdk_version + 1 == min_sdk_version || min_sdk_version <= last_max_sdk_version
+            last_entry["max_sdk_version"] = fingerprint["max_sdk_version"]
+            next
+          end
+        end
+
+        acc.push(fingerprint)
+      end
+
+      return [] if merged_fingerprints.size == 1 && merged_fingerprints[0].fetch(::AndroidApk::SignatureDigest::SHA256).nil?
+
+      merged_fingerprints
     end
   end
 end

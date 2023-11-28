@@ -48,10 +48,6 @@ describe AndroidApk::SignatureVerifier do
           [
             {
               "min_sdk_version" => min_sdk_version,
-              "max_sdk_version" => 23
-            }.merge(previous_certificate),
-            {
-              "min_sdk_version" => 24,
               "max_sdk_version" => 2_147_483_647
             }.merge(previous_certificate)
           ]
@@ -76,10 +72,6 @@ describe AndroidApk::SignatureVerifier do
           [
             {
               "min_sdk_version" => min_sdk_version,
-              "max_sdk_version" => 23
-            }.merge(previous_certificate),
-            {
-              "min_sdk_version" => 24,
               "max_sdk_version" => 32
             }.merge(previous_certificate),
             {
@@ -108,10 +100,10 @@ describe AndroidApk::SignatureVerifier do
           [
             {
               "min_sdk_version" => min_sdk_version,
-              "max_sdk_version" => 23
+              "max_sdk_version" => 27
             }.merge(previous_certificate),
             {
-              "min_sdk_version" => 24,
+              "min_sdk_version" => 28,
               "max_sdk_version" => 2_147_483_647
             }.merge(new_certificate)
           ]
@@ -212,6 +204,10 @@ describe AndroidApk::SignatureVerifier do
           [
             {
               "min_sdk_version" => 24,
+              "max_sdk_version" => 27
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 28,
               "max_sdk_version" => 2_147_483_647
             }.merge(new_certificate)
           ]
@@ -292,6 +288,10 @@ describe AndroidApk::SignatureVerifier do
           [
             {
               "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 27
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 28,
               "max_sdk_version" => 2_147_483_647
             }.merge(new_certificate)
           ]
@@ -384,6 +384,10 @@ describe AndroidApk::SignatureVerifier do
           [
             {
               "min_sdk_version" => min_sdk_version,
+              "max_sdk_version" => 27
+            }.merge(previous_certificate),
+            {
+              "min_sdk_version" => 28,
               "max_sdk_version" => 2_147_483_647
             }.merge(new_certificate)
           ]
