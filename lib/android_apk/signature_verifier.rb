@@ -52,7 +52,7 @@ class AndroidApk
 
         min_sdk_for_verification = [min_sdk, min_sdk_version].max
 
-        if !skip_v2_requirement_check && V2_SCHEME_SDK_INT <= min_sdk_for_verification && max_sdk < V2_REQUIRED_SDK_INT_FOR_APKSIGNER
+        if !skip_v2_requirement_check && min_sdk_for_verification >= V2_SCHEME_SDK_INT && max_sdk < V2_REQUIRED_SDK_INT_FOR_APKSIGNER
           skip_v2_requirement_check = true
 
           # If this apk has no v2 or v2+ schemes, this verification must fail.
