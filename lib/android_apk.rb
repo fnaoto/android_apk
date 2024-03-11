@@ -15,6 +15,7 @@ require_relative "android_apk/signature_digest"
 require_relative "android_apk/signature_lineage_reader"
 require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
+require_relative "android_apk/aapt2/dump_resources"
 
 class AndroidApk
   FALLBACK_DPI = 65_534
@@ -187,7 +188,7 @@ class AndroidApk
     end
 
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
-    icons_in_arsc = ::AndroidApk::ResourceFinder.resolve_icons_in_arsc(
+    icons_in_arsc = ::AndroidApk::ResourceFinder.decode_resource_table(
       apk_filepath: filepath,
       default_icon_path: default_icon_path
     )
