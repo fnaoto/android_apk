@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "fileutils"
+require "forwardable"
 require "open3"
 require "shellwords"
 require "tmpdir"
@@ -18,6 +19,29 @@ require_relative "android_apk/xmltree"
 require_relative "android_apk/aapt2/dump_badging"
 require_relative "android_apk/aapt2/dump_resources"
 
+# @!attribute [r] label
+#   @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
+# @!attribute [r] default_icon_path
+#   @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
+# @!attribute [r] test_only
+#   @return [Boolean] Check whether or not this apk is a test mode. Return true if an apk is a test apk
+# @!attribute [r] package_name
+#   @return [String] an application's package name which is defined in AndroidManifest
+# @!attribute [r] version_code
+#   @return [String] an application's version code which is defined in AndroidManifest
+# @!attribute [r] version_name
+#   @return [String] an application's version name which is defined in AndroidManifest
+# @!attribute [r] min_sdk_version
+#   @return [String, NilClass] an application's min sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
+# @!attribute [r] target_sdk_version
+#   @return [String, NilClass] an application's target sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
+# @!attribute [r] labels
+#   @return [Hash] an application's labels a.k.a application name in available resources.
+# @!attribute [r] icons
+#   @return [Hash] an application's relative icon paths grouped by densities
+#   @deprecated no longer used
+# @!attribute [r] icon_path_hash
+#   @return [Hash] Application icon paths for all densities that are human readable names. This value may contains anyapi-v<api_version>.
 class AndroidApk
   FALLBACK_DPI = 65_534
   ADAPTIVE_ICON_SDK = 26
@@ -31,70 +55,6 @@ class AndroidApk
       @logger ||= Logger.new($stdout)
     end
   end
-
-  # Dump result which was parsed manually
-  # @deprecated don't expose this field
-  # @return [Hash] Return a parsed result of aapt dump
-  attr_reader :results
-
-  # Application label a.k.a application name in the default resource
-  # @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
-  attr_reader :label
-
-  # Application labels a.k.a application name in available resources
-  # @return [Hash] Return a hash based on AndroidManifest.xml
-  attr_reader :labels
-
-  # The default path of the application icon
-  # @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
-  attr_reader :default_icon_path
-  alias icon default_icon_path
-
-  # @deprecated no longer used
-  # Application icon paths for all densities
-  # @return [Hash] Return a hash of relative paths
-  attr_reader :icons
-
-  # Application icon paths for all densities that are human readable names
-  # This value may contains anyapi-v<api_version>.
-  #
-  # @return [Hash] Return a hash of relative paths
-  attr_reader :icon_path_hash
-
-  # Package name of this apk
-  # @return [String] Return a value which is defined in AndroidManifest.xml
-  attr_reader :package_name
-
-  # Version code of this apk
-  # @return [String] Return a value which is defined in AndroidManifest.xml
-  attr_reader :version_code
-
-  # Version name of this apk
-  # @return [String] Return a value if it is defined in AndroidManifest.xml, otherwise empty. Never be nil.
-  attr_reader :version_name
-
-  # Min sdk version of this apk
-  # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_reader :min_sdk_version
-  alias sdk_version min_sdk_version
-
-  # Target sdk version of this apk
-  # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_reader :target_sdk_version
-
-  # An object contains lineages and certificate fingerprints
-  # @return [AndroidApk::AppSignature] a signature representation
-  attr_reader :app_signature
-
-  # Check whether or not this apk is a test mode
-  # @return [Boolean] Return true if this apk is a test mode, otherwise false.
-  attr_reader :test_only
-  alias test_only? test_only
-
-  # An apk file which has been analyzed
-  # @deprecated because a file might be moved/removed
-  # @return [String] Return a file path of this apk file
-  attr_reader :filepath
 
   NOT_ALLOW_DUPLICATE_TAG_NAMES = %w(
     application
@@ -121,6 +81,20 @@ class AndroidApk
     UNSIGNED = :unsigned
   end
 
+  extend Forwardable
+
+  delegate %i(label default_icon_path test_only test_only? package_name version_code version_name min_sdk_version target_sdk_version icons labels) => :@aapt2_result
+
+  alias icon default_icon_path
+
+  attr_reader :icon_path_hash
+
+  alias sdk_version min_sdk_version
+
+  # An object contains lineages and certificate fingerprints
+  # @return [AndroidApk::AppSignature] a signature representation
+  attr_reader :app_signature
+
   # Do analyze the given apk file. Analyzed apk does not mean *valid*.
   #
   # @param [String] filepath a filepath of an apk to be analyzed
@@ -140,29 +114,7 @@ class AndroidApk
     raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
     @filepath = filepath
-
-    aapt2 = Aapt2::DumpBadging.new(apk_filepath: filepath)
-    aapt2_result = aapt2.parse
-
-    # application info
-    @label = aapt2_result.label
-
-    @default_icon_path = aapt2_result.default_icon_path
-    @test_only = aapt2_result.test_only?
-
-    # package
-
-    @package_name = aapt2_result.package_name
-    @version_code = aapt2_result.version_code
-    @version_name = aapt2_result.version_name || ""
-
-    # platforms
-    @min_sdk_version = aapt2_result.min_sdk_version
-    @target_sdk_version = aapt2_result.target_sdk_version
-
-    # icons and labels
-    @icons = aapt2_result.icons # old
-    @labels = aapt2_result.labels
+    @aapt2_result = Aapt2::DumpBadging.new(apk_filepath: filepath).parse
 
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.decode_resource_table(
@@ -170,11 +122,11 @@ class AndroidApk
       default_icon_path: default_icon_path
     )
 
-    @icon_path_hash = @icons.dup.transform_keys do |dpi|
+    @icon_path_hash = icons.dup.transform_keys do |dpi|
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
     end.merge(icons_in_arsc)
 
-    @app_signature = AppSignature.parse(filepath: filepath, min_sdk_version: @min_sdk_version)
+    @app_signature = AppSignature.parse(filepath: filepath, min_sdk_version: min_sdk_version)
   end
 
   # @return [Array<AndroidApk::AppIcon>]
@@ -194,7 +146,7 @@ class AndroidApk
       end
     end.sort.reverse
 
-    sorted_paths.map { |dpi, path| ::AndroidApk::AppIcon.new(apk_filepath: filepath, dpi: dpi, resource_path: path) }
+    sorted_paths.map { |dpi, path| ::AndroidApk::AppIcon.new(apk_filepath: @filepath, dpi: dpi, resource_path: path) }
   end
 
   # @deprecated no longer used
@@ -233,7 +185,7 @@ class AndroidApk
 
       FileUtils.mkdir_p(File.dirname(output_to))
 
-      Zip::File.open(self.filepath) do |zip_file|
+      Zip::File.open(@filepath) do |zip_file|
         entry = zip_file.find_entry(icon) or return nil
 
         File.binwrite(output_to, zip_file.read(entry))
@@ -258,7 +210,7 @@ class AndroidApk
       output_to = File.join(dir, png_path)
       FileUtils.mkdir_p(File.dirname(output_to))
 
-      Zip::File.open(self.filepath) do |zip_file|
+      Zip::File.open(@filepath) do |zip_file|
         entry = zip_file.find_entry(png_path)
 
         next if entry.nil?
@@ -369,6 +321,6 @@ class AndroidApk
     return @icon_xmltree if defined?(@icon_xmltree)
 
     @icon_xmltree = nil
-    @icon_xmltree = Xmltree.read(apk_filepath: filepath, xml_filepath: icon) if icon.end_with?(".xml")
+    @icon_xmltree = Xmltree.read(apk_filepath: @filepath, xml_filepath: icon) if icon.end_with?(".xml")
   end
 end

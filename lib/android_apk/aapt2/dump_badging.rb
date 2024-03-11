@@ -14,7 +14,7 @@ class AndroidApk
       # @!attribute [r] version_code
       #   @return [String] an application's version code which is defined in AndroidManifest
       # @!attribute [r] version_name
-      #   @return [String, NilClass] an application's version name which is defined in AndroidManifest
+      #   @return [String] an application's version name which is defined in AndroidManifest
       # @!attribute [r] min_sdk_version
       #   @return [String, NilClass] an application's min sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
       # @!attribute [r] target_sdk_version
