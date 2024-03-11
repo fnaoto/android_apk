@@ -61,7 +61,7 @@ class AndroidApk
       end
 
       def self.dump_badging(apk_filepath:)
-        stdout, stderr, status = Open3.capture3("aapt2", "dump", "badging", "--include-meta-data", apk_filepath)
+        stdout, stderr, status = Open3.capture3("aapt2", "dump", "badging", apk_filepath)
         stdout if status.success?
 
         if status.success?
