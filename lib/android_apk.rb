@@ -15,6 +15,7 @@ require_relative "android_apk/signature_digest"
 require_relative "android_apk/signature_lineage_reader"
 require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
+require_relative "android_apk/aapt2/dump_badging"
 require_relative "android_apk/aapt2/dump_resources"
 
 class AndroidApk
@@ -128,36 +129,20 @@ class AndroidApk
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
   def self.analyze(filepath)
-    raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
-
-    command = "aapt dump badging #{filepath.shellescape} 2>&1"
-    results = `#{command}`
-
-    if $?.exitstatus != 0
-      if results.index(/ERROR:?\s/) # : is never required because it's mixed.
-        # *normally* failed. The output of aapk dump is helpful.
-        # ref: https://cs.android.com/android/platform/superproject/+/master:frameworks/base/tools/aapt/Command.cpp;l=860?q=%22dump%20failed%22%20aapt
-        raise UnacceptableApkError, "This apk file cannot be analyzed using 'aapt dump badging'. #{results}"
-      else
-        # unexpectedly failed. This may happen due to the running environment.
-        raise UnacceptableApkError, "'aapt dump badging' failed due to an unexpected error."
-      end
-    end
-
     AndroidApk.new(
-      filepath: filepath,
-      results: results
+      filepath: filepath
     )
   end
 
   def initialize(
-    filepath:,
-    results:
+    filepath:
   )
-    @filepath = filepath
-    @results = results
+    raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
-    vars = self.class._parse_aapt(results)
+    @filepath = filepath
+
+    aapt2 = Aapt2::DumpBadging.new(apk_filepath: filepath)
+    vars = aapt2.parse
 
     # application info
     @label = vars["application-label"]
@@ -386,88 +371,6 @@ class AndroidApk
   end
 
   # end: deprecations
-
-  # workaround for https://code.google.com/p/android/issues/detail?id=160847
-  def self._parse_values_workaround(str)
-    return nil if str.nil?
-
-    str.scan(/^'(.+)'$/).map { |v| v[0].gsub("\\'", "'") }
-  end
-
-  # Parse values of aapt output
-  #
-  # @param [String, nil] str a values string of aapt output.
-  # @return [Array, Hash, nil] return nil if (see str) is nil. Otherwise the parsed array will be returned.
-  def self._parse_values(str)
-    return nil if str.nil?
-
-    if str.index("='")
-      # key-value hash
-      vars = str.scan(/(\S+)='((?:\\'|[^'])*)'/).to_h
-      vars.each_value { |v| v.gsub("\\'", "'") }
-    else
-      # values array
-      vars = str.scan(/'((?:\\'|[^'])*)'/).map { |v| v[0].gsub("\\'", "'") }
-    end
-    return vars
-  end
-
-  # Parse output of a line of aapt command like `key: values`
-  #
-  # @param [String, nil] line a line of aapt command.
-  # @return [[String, Hash], nil] return nil if (see line) is nil. Otherwise the parsed hash will be returned.
-  def self._parse_line(line)
-    return nil if line.nil?
-
-    info = line.split(":", 2)
-    values =
-      if info[0].start_with?("application-label")
-        _parse_values_workaround info[1]
-      else
-        _parse_values info[1]
-      end
-    return info[0], values
-  end
-
-  # Parse output of aapt command to Hash format
-  #
-  # @param [String, nil] results output of aapt command. this may be multi lines.
-  # @return [Hash, nil] return nil if (see str) is nil. Otherwise the parsed hash will be returned.
-  def self._parse_aapt(results)
-    vars = {}
-    results.split("\n").each do |line|
-      key, value = _parse_line(line)
-      next if key.nil?
-
-      if vars.key?(key)
-        reject_illegal_duplicated_key!(key)
-
-        if vars[key].kind_of?(Hash) and value.kind_of?(Hash)
-          vars[key].merge(value)
-        else
-          vars[key] = [vars[key]] unless vars[key].kind_of?(Array)
-          if value.kind_of?(Array)
-            vars[key].concat(value)
-          else
-            vars[key].push(value)
-          end
-        end
-      else
-        vars[key] = if value.nil? || value.kind_of?(Hash)
-                      value
-                    else
-                      value.length > 1 ? value : value[0]
-                    end
-      end
-    end
-    return vars
-  end
-
-  # @param [String] key a key of AndroidManifest.xml
-  # @raise [AndroidManifestValidateError] if a key is found in (see NOT_ALLOW_DUPLICATE_TAG_NAMES)
-  def self.reject_illegal_duplicated_key!(key)
-    raise AndroidManifestValidateError, key if NOT_ALLOW_DUPLICATE_TAG_NAMES.include?(key)
-  end
 
   # @return [AndroidApk::Xmltree, NilClass]
   private def icon_xmltree
