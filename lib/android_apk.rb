@@ -142,35 +142,27 @@ class AndroidApk
     @filepath = filepath
 
     aapt2 = Aapt2::DumpBadging.new(apk_filepath: filepath)
-    vars = aapt2.parse
+    aapt2_result = aapt2.parse
 
     # application info
-    @label = vars["application-label"]
+    @label = aapt2_result.label
 
-    @default_icon_path = vars["application"]["icon"]
-    @test_only = vars.key?("testOnly='-1'")
+    @default_icon_path = aapt2_result.default_icon_path
+    @test_only = aapt2_result.test_only?
 
     # package
 
-    @package_name = vars["package"]["name"]
-    @version_code = vars["package"]["versionCode"]
-    @version_name = vars["package"]["versionName"] || ""
+    @package_name = aapt2_result.package_name
+    @version_code = aapt2_result.version_code
+    @version_name = aapt2_result.version_name || ""
 
     # platforms
-    @min_sdk_version = vars["sdkVersion"]
-    @target_sdk_version = vars["targetSdkVersion"]
+    @min_sdk_version = aapt2_result.min_sdk_version
+    @target_sdk_version = aapt2_result.target_sdk_version
 
     # icons and labels
-    @icons = {} # old
-    @labels = {}
-
-    vars.each_key do |k|
-      if (m = k.match(/\Aapplication-icon-(\d+)\z/))
-        @icons[m[1].to_i] = vars[k]
-      elsif (m = k.match(/\Aapplication-label-(\S+)\z/))
-        @labels[m[1]] = vars[k]
-      end
-    end
+    @icons = aapt2_result.icons # old
+    @labels = aapt2_result.labels
 
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.decode_resource_table(
@@ -178,7 +170,7 @@ class AndroidApk
       default_icon_path: default_icon_path
     )
 
-    @icon_path_hash = icons.dup.transform_keys do |dpi|
+    @icon_path_hash = @icons.dup.transform_keys do |dpi|
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
     end.merge(icons_in_arsc)
 

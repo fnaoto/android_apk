@@ -3,10 +3,66 @@
 class AndroidApk
   module Aapt2
     class DumpBadging
+      # @!attribute [r] label
+      #   @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
+      # @!attribute [r] default_icon_path
+      #   @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
+      # @!attribute [r] test_only
+      #   @return [Boolean] Check whether or not this apk is a test mode. Return true if an apk is a test apk
+      # @!attribute [r] package_name
+      #   @return [String] an application's package name which is defined in AndroidManifest
+      # @!attribute [r] version_code
+      #   @return [String] an application's version code which is defined in AndroidManifest
+      # @!attribute [r] version_name
+      #   @return [String, NilClass] an application's version name which is defined in AndroidManifest
+      # @!attribute [r] min_sdk_version
+      #   @return [String, NilClass] an application's min sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
+      # @!attribute [r] target_sdk_version
+      #   @return [String, NilClass] an application's target sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
+      # @!attribute [r] labels
+      #   @return [Hash] an application's labels a.k.a application name in available resources.
+      # @!attribute [r] icons
+      #   @return [Hash] an application's relative icon paths grouped by densities
+      #   @deprecated no longer used
+      class Result
+        attr_reader :label, :default_icon_path, :test_only, :package_name, :version_code, :version_name, :min_sdk_version, :target_sdk_version, :icons, :labels
+
+        def initialize(variables)
+          # application info
+          @label = variables["application-label"]
+
+          @default_icon_path = variables["application"]["icon"]
+          @test_only = variables.key?("testOnly='-1'")
+
+          # package
+
+          @package_name = variables["package"]["name"]
+          @version_code = variables["package"]["versionCode"]
+          @version_name = variables["package"]["versionName"] || ""
+
+          # platforms
+          @min_sdk_version = variables["sdkVersion"]
+          @target_sdk_version = variables["targetSdkVersion"]
+
+          # icons and labels
+          @icons = {} # old
+          @labels = {}
+
+          variables.each_key do |k|
+            if (m = k.match(/\Aapplication-icon-(\d+)\z/))
+              @icons[m[1].to_i] = variables[k]
+            elsif (m = k.match(/\Aapplication-label-(\S+)\z/))
+              @labels[m[1]] = variables[k]
+            end
+          end
+        end
+
+        alias test_only? test_only
+      end
+
       def self.dump_badging(apk_filepath:)
         stdout, stderr, status = Open3.capture3("aapt2", "dump", "badging", "--include-meta-data", apk_filepath)
         stdout if status.success?
-
 
         if status.success?
           stdout
@@ -30,7 +86,7 @@ class AndroidApk
 
       # Parse output of aapt2 command to Hash format
       #
-      # @return [Hash, nil] return nil if (see str) is nil. Otherwise the parsed hash will be returned.
+      # @return [::AndroidApk::Aapt2::DumpBadging::Result]
       def parse
         vars = {}
         results = @dump_results.dup
@@ -59,7 +115,8 @@ class AndroidApk
                         end
           end
         end
-        return vars
+
+        Result.new(vars)
       end
 
       # workaround for https://code.google.com/p/android/issues/detail?id=160847
