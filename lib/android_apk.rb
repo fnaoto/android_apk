@@ -331,26 +331,6 @@ class AndroidApk
     @backward_compatible_adaptive_icon = icon_xmltree&.adaptive_icon? && SUPPORTED_DPI_NAMES.any? { |d| icon_path_hash[d]&.end_with?(".png") }
   end
 
-  def eql?(other)
-    return false unless other.kind_of?(AndroidApk)
-
-    %i(
-      label
-      package_name
-      version_code
-      version_name
-      min_sdk_version
-      target_sdk_version
-      signature
-      adaptive_icon?
-      backward_compatible_adaptive_icon?
-      verified?
-      test_only?
-    ).all? do |prop|
-      self.send(prop) == other.send(prop)
-    end
-  end
-
   # deprecations
 
   # The trusted signature lineage. The first element is the same to the signing signature of the apk file.
