@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "fileutils"
+require "forwardable"
 require "open3"
 require "shellwords"
 require "tmpdir"
@@ -15,8 +16,32 @@ require_relative "android_apk/signature_digest"
 require_relative "android_apk/signature_lineage_reader"
 require_relative "android_apk/signature_verifier"
 require_relative "android_apk/xmltree"
+require_relative "android_apk/aapt2/dump_badging"
 require_relative "android_apk/aapt2/dump_resources"
 
+# @!attribute [r] label
+#   @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
+# @!attribute [r] default_icon_path
+#   @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
+# @!attribute [r] test_only
+#   @return [Boolean] Check whether or not this apk is a test mode. Return true if an apk is a test apk
+# @!attribute [r] package_name
+#   @return [String] an application's package name which is defined in AndroidManifest
+# @!attribute [r] version_code
+#   @return [String] an application's version code which is defined in AndroidManifest
+# @!attribute [r] version_name
+#   @return [String] an application's version name which is defined in AndroidManifest
+# @!attribute [r] min_sdk_version
+#   @return [String, NilClass] an application's min sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
+# @!attribute [r] target_sdk_version
+#   @return [String, NilClass] an application's target sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
+# @!attribute [r] labels
+#   @return [Hash] an application's labels a.k.a application name in available resources.
+# @!attribute [r] icons
+#   @return [Hash] an application's relative icon paths grouped by densities
+#   @deprecated no longer used
+# @!attribute [r] icon_path_hash
+#   @return [Hash] Application icon paths for all densities that are human readable names. This value may contains anyapi-v<api_version>.
 class AndroidApk
   FALLBACK_DPI = 65_534
   ADAPTIVE_ICON_SDK = 26
@@ -30,70 +55,6 @@ class AndroidApk
       @logger ||= Logger.new($stdout)
     end
   end
-
-  # Dump result which was parsed manually
-  # @deprecated don't expose this field
-  # @return [Hash] Return a parsed result of aapt dump
-  attr_reader :results
-
-  # Application label a.k.a application name in the default resource
-  # @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
-  attr_reader :label
-
-  # Application labels a.k.a application name in available resources
-  # @return [Hash] Return a hash based on AndroidManifest.xml
-  attr_reader :labels
-
-  # The default path of the application icon
-  # @return [String] Return a relative path of this apk's icon. This is the real filepath in the apk but not resource-friendly path.
-  attr_reader :default_icon_path
-  alias icon default_icon_path
-
-  # @deprecated no longer used
-  # Application icon paths for all densities
-  # @return [Hash] Return a hash of relative paths
-  attr_reader :icons
-
-  # Application icon paths for all densities that are human readable names
-  # This value may contains anyapi-v<api_version>.
-  #
-  # @return [Hash] Return a hash of relative paths
-  attr_reader :icon_path_hash
-
-  # Package name of this apk
-  # @return [String] Return a value which is defined in AndroidManifest.xml
-  attr_reader :package_name
-
-  # Version code of this apk
-  # @return [String] Return a value which is defined in AndroidManifest.xml
-  attr_reader :version_code
-
-  # Version name of this apk
-  # @return [String] Return a value if it is defined in AndroidManifest.xml, otherwise empty. Never be nil.
-  attr_reader :version_name
-
-  # Min sdk version of this apk
-  # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_reader :min_sdk_version
-  alias sdk_version min_sdk_version
-
-  # Target sdk version of this apk
-  # @return [String] Return Integer string which is defined in AndroidManifest.xml
-  attr_reader :target_sdk_version
-
-  # An object contains lineages and certificate fingerprints
-  # @return [AndroidApk::AppSignature] a signature representation
-  attr_reader :app_signature
-
-  # Check whether or not this apk is a test mode
-  # @return [Boolean] Return true if this apk is a test mode, otherwise false.
-  attr_reader :test_only
-  alias test_only? test_only
-
-  # An apk file which has been analyzed
-  # @deprecated because a file might be moved/removed
-  # @return [String] Return a file path of this apk file
-  attr_reader :filepath
 
   NOT_ALLOW_DUPLICATE_TAG_NAMES = %w(
     application
@@ -120,6 +81,20 @@ class AndroidApk
     UNSIGNED = :unsigned
   end
 
+  extend Forwardable
+
+  delegate %i(label default_icon_path test_only test_only? package_name version_code version_name min_sdk_version target_sdk_version icons labels) => :@aapt2_result
+
+  alias icon default_icon_path
+
+  attr_reader :icon_path_hash
+
+  alias sdk_version min_sdk_version
+
+  # An object contains lineages and certificate fingerprints
+  # @return [AndroidApk::AppSignature] a signature representation
+  attr_reader :app_signature
+
   # Do analyze the given apk file. Analyzed apk does not mean *valid*.
   #
   # @param [String] filepath a filepath of an apk to be analyzed
@@ -128,64 +103,18 @@ class AndroidApk
   # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
   # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
   def self.analyze(filepath)
-    raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
-
-    command = "aapt dump badging #{filepath.shellescape} 2>&1"
-    results = `#{command}`
-
-    if $?.exitstatus != 0
-      if results.index(/ERROR:?\s/) # : is never required because it's mixed.
-        # *normally* failed. The output of aapk dump is helpful.
-        # ref: https://cs.android.com/android/platform/superproject/+/master:frameworks/base/tools/aapt/Command.cpp;l=860?q=%22dump%20failed%22%20aapt
-        raise UnacceptableApkError, "This apk file cannot be analyzed using 'aapt dump badging'. #{results}"
-      else
-        # unexpectedly failed. This may happen due to the running environment.
-        raise UnacceptableApkError, "'aapt dump badging' failed due to an unexpected error."
-      end
-    end
-
     AndroidApk.new(
-      filepath: filepath,
-      results: results
+      filepath: filepath
     )
   end
 
   def initialize(
-    filepath:,
-    results:
+    filepath:
   )
+    raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
+
     @filepath = filepath
-    @results = results
-
-    vars = self.class._parse_aapt(results)
-
-    # application info
-    @label = vars["application-label"]
-
-    @default_icon_path = vars["application"]["icon"]
-    @test_only = vars.key?("testOnly='-1'")
-
-    # package
-
-    @package_name = vars["package"]["name"]
-    @version_code = vars["package"]["versionCode"]
-    @version_name = vars["package"]["versionName"] || ""
-
-    # platforms
-    @min_sdk_version = vars["sdkVersion"]
-    @target_sdk_version = vars["targetSdkVersion"]
-
-    # icons and labels
-    @icons = {} # old
-    @labels = {}
-
-    vars.each_key do |k|
-      if (m = k.match(/\Aapplication-icon-(\d+)\z/))
-        @icons[m[1].to_i] = vars[k]
-      elsif (m = k.match(/\Aapplication-label-(\S+)\z/))
-        @labels[m[1]] = vars[k]
-      end
-    end
+    @aapt2_result = Aapt2::DumpBadging.new(apk_filepath: filepath).parse
 
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.decode_resource_table(
@@ -197,7 +126,7 @@ class AndroidApk
       DPI_TO_NAME_MAP[dpi] || DEFAULT_RESOURCE_CONFIG
     end.merge(icons_in_arsc)
 
-    @app_signature = AppSignature.parse(filepath: filepath, min_sdk_version: @min_sdk_version)
+    @app_signature = AppSignature.parse(filepath: filepath, min_sdk_version: min_sdk_version)
   end
 
   # @return [Array<AndroidApk::AppIcon>]
@@ -217,7 +146,7 @@ class AndroidApk
       end
     end.sort.reverse
 
-    sorted_paths.map { |dpi, path| ::AndroidApk::AppIcon.new(apk_filepath: filepath, dpi: dpi, resource_path: path) }
+    sorted_paths.map { |dpi, path| ::AndroidApk::AppIcon.new(apk_filepath: @filepath, dpi: dpi, resource_path: path) }
   end
 
   # @deprecated no longer used
@@ -256,7 +185,7 @@ class AndroidApk
 
       FileUtils.mkdir_p(File.dirname(output_to))
 
-      Zip::File.open(self.filepath) do |zip_file|
+      Zip::File.open(@filepath) do |zip_file|
         entry = zip_file.find_entry(icon) or return nil
 
         File.binwrite(output_to, zip_file.read(entry))
@@ -281,7 +210,7 @@ class AndroidApk
       output_to = File.join(dir, png_path)
       FileUtils.mkdir_p(File.dirname(output_to))
 
-      Zip::File.open(self.filepath) do |zip_file|
+      Zip::File.open(@filepath) do |zip_file|
         entry = zip_file.find_entry(png_path)
 
         next if entry.nil?
@@ -387,93 +316,11 @@ class AndroidApk
 
   # end: deprecations
 
-  # workaround for https://code.google.com/p/android/issues/detail?id=160847
-  def self._parse_values_workaround(str)
-    return nil if str.nil?
-
-    str.scan(/^'(.+)'$/).map { |v| v[0].gsub("\\'", "'") }
-  end
-
-  # Parse values of aapt output
-  #
-  # @param [String, nil] str a values string of aapt output.
-  # @return [Array, Hash, nil] return nil if (see str) is nil. Otherwise the parsed array will be returned.
-  def self._parse_values(str)
-    return nil if str.nil?
-
-    if str.index("='")
-      # key-value hash
-      vars = str.scan(/(\S+)='((?:\\'|[^'])*)'/).to_h
-      vars.each_value { |v| v.gsub("\\'", "'") }
-    else
-      # values array
-      vars = str.scan(/'((?:\\'|[^'])*)'/).map { |v| v[0].gsub("\\'", "'") }
-    end
-    return vars
-  end
-
-  # Parse output of a line of aapt command like `key: values`
-  #
-  # @param [String, nil] line a line of aapt command.
-  # @return [[String, Hash], nil] return nil if (see line) is nil. Otherwise the parsed hash will be returned.
-  def self._parse_line(line)
-    return nil if line.nil?
-
-    info = line.split(":", 2)
-    values =
-      if info[0].start_with?("application-label")
-        _parse_values_workaround info[1]
-      else
-        _parse_values info[1]
-      end
-    return info[0], values
-  end
-
-  # Parse output of aapt command to Hash format
-  #
-  # @param [String, nil] results output of aapt command. this may be multi lines.
-  # @return [Hash, nil] return nil if (see str) is nil. Otherwise the parsed hash will be returned.
-  def self._parse_aapt(results)
-    vars = {}
-    results.split("\n").each do |line|
-      key, value = _parse_line(line)
-      next if key.nil?
-
-      if vars.key?(key)
-        reject_illegal_duplicated_key!(key)
-
-        if vars[key].kind_of?(Hash) and value.kind_of?(Hash)
-          vars[key].merge(value)
-        else
-          vars[key] = [vars[key]] unless vars[key].kind_of?(Array)
-          if value.kind_of?(Array)
-            vars[key].concat(value)
-          else
-            vars[key].push(value)
-          end
-        end
-      else
-        vars[key] = if value.nil? || value.kind_of?(Hash)
-                      value
-                    else
-                      value.length > 1 ? value : value[0]
-                    end
-      end
-    end
-    return vars
-  end
-
-  # @param [String] key a key of AndroidManifest.xml
-  # @raise [AndroidManifestValidateError] if a key is found in (see NOT_ALLOW_DUPLICATE_TAG_NAMES)
-  def self.reject_illegal_duplicated_key!(key)
-    raise AndroidManifestValidateError, key if NOT_ALLOW_DUPLICATE_TAG_NAMES.include?(key)
-  end
-
   # @return [AndroidApk::Xmltree, NilClass]
   private def icon_xmltree
     return @icon_xmltree if defined?(@icon_xmltree)
 
     @icon_xmltree = nil
-    @icon_xmltree = Xmltree.read(apk_filepath: filepath, xml_filepath: icon) if icon.end_with?(".xml")
+    @icon_xmltree = Xmltree.read(apk_filepath: @filepath, xml_filepath: icon) if icon.end_with?(".xml")
   end
 end

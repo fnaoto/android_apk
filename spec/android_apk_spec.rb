@@ -39,7 +39,6 @@ describe "AndroidApk" do
         {
           filepath: fixture_file("invalid", "corrupt_manifest.apk"),
           error: AndroidApk::UnacceptableApkError,
-          error_message: /AndroidManifest\.xml is corrupt/
         },
         {
           filepath: fixture_file("invalid", "multi_application_tag.apk"),
