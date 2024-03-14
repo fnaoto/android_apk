@@ -19,6 +19,8 @@ require_relative "android_apk/xmltree"
 require_relative "android_apk/aapt2/dump_badging"
 require_relative "android_apk/aapt2/dump_resources"
 
+# @!attribute [r] aapt2_badging_result
+#   @return [AndroidApk::Aapt2::DumpBadging::Result]
 # @!attribute [r] label
 #   @return [String, NilClass] Return a value which is defined in AndroidManifest.xml. Could be nil.
 # @!attribute [r] default_icon_path
@@ -42,6 +44,10 @@ require_relative "android_apk/aapt2/dump_resources"
 #   @deprecated no longer used
 # @!attribute [r] icon_path_hash
 #   @return [Hash] Application icon paths for all densities that are human readable names. This value may contains anyapi-v<api_version>.
+# @!attribute [r] app_signature
+#   @return [AndroidApk::AppSignature] An object contains lineages and certificate fingerprints
+# @!attribute [r] meta_data
+#   @return [Hash] Named hash of meta-data tags in AndroidManifest.xml. Return an empty if none is found.
 class AndroidApk
   FALLBACK_DPI = 65_534
   ADAPTIVE_ICON_SDK = 26
@@ -55,12 +61,6 @@ class AndroidApk
       @logger ||= Logger.new($stdout)
     end
   end
-
-  NOT_ALLOW_DUPLICATE_TAG_NAMES = %w(
-    application
-    sdkVersion
-    targetSdkVersion
-  ).freeze
 
   DPI_TO_NAME_MAP = {
     120 => "ldpi",
@@ -83,25 +83,20 @@ class AndroidApk
 
   extend Forwardable
 
-  delegate %i(label default_icon_path test_only test_only? package_name version_code version_name min_sdk_version target_sdk_version icons labels) => :@aapt2_result
+  attr_reader :aapt2_badging_result, :icon_path_hash, :app_signature
+
+  delegate %i(label default_icon_path test_only test_only? package_name version_code version_name min_sdk_version target_sdk_version icons labels meta_data) => :@aapt2_badging_result
 
   alias icon default_icon_path
-
-  attr_reader :icon_path_hash
-
   alias sdk_version min_sdk_version
-
-  # An object contains lineages and certificate fingerprints
-  # @return [AndroidApk::AppSignature] a signature representation
-  attr_reader :app_signature
 
   # Do analyze the given apk file. Analyzed apk does not mean *valid*.
   #
   # @param [String] filepath a filepath of an apk to be analyzed
   # @return [AndroidApk] An instance of AndroidApk will be returned if no problem exists while analyzing.
   # @raise [AndroidApk::ApkFileNotFoundError] if the filepath doesn't exist
-  # @raise [AndroidApk::UnacceptableApkError] if the apk file is not acceptable by commands like aapt
-  # @raise [AndroidApk::AndroidManifestValidateError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
+  # @raise [AndroidApk::Aapt2Error] if the apk file is not acceptable by commands like aapt
+  # @raise [AndroidApk::InvalidApkError] if the apk contains invalid AndroidManifest.xml but only when we can identify why it's invalid.
   def self.analyze(filepath)
     AndroidApk.new(
       filepath: filepath
@@ -114,7 +109,7 @@ class AndroidApk
     raise ApkFileNotFoundError, "an apk file is required to analyze." unless File.exist?(filepath)
 
     @filepath = filepath
-    @aapt2_result = Aapt2::DumpBadging.new(apk_filepath: filepath).parse
+    @aapt2_badging_result = Aapt2::DumpBadging.new(apk_filepath: filepath).parse
 
     # It seems the resources in the aapt's output doesn't mean that it's available in resource.arsc
     icons_in_arsc = ::AndroidApk::ResourceFinder.decode_resource_table(

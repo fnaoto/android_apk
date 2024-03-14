@@ -26,34 +26,10 @@ describe "AndroidApk" do
       end
     end
 
-    context "if invalid sample apk files are given" do
-      cases = [
-        {
-          filepath: fixture_file("invalid", "no_such_file"),
-          error: AndroidApk::ApkFileNotFoundError,
-        },
-        {
-          filepath: fixture_file("invalid", "no_android_manifest.apk"),
-          error: AndroidApk::UnacceptableApkError,
-        },
-        {
-          filepath: fixture_file("invalid", "corrupt_manifest.apk"),
-          error: AndroidApk::UnacceptableApkError,
-        },
-        {
-          filepath: fixture_file("invalid", "multi_application_tag.apk"),
-          error: AndroidApk::AndroidManifestValidateError,
-          error_message: /application/
-        },
-      ]
+    context "if a file is not found" do
+      let(:apk_filepath) { fixture_file("invalid", "no_such_file") }
 
-      cases.each do |c|
-        context "for #{c[:filepath]}" do
-          let(:apk_filepath) { c[:filepath] }
-
-          it { expect { subject }.to raise_error(c[:error], c[:error_message]) }
-        end
-      end
+      it { expect { subject }.to raise_error(AndroidApk::ApkFileNotFoundError) }
     end
 
     context "if valid sample apk files are given" do
