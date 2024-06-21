@@ -36,7 +36,7 @@ jobs:
         java-version:
           - 11
         buildtools-version:
-          - 34.0.0
+          - 35.0.0
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332

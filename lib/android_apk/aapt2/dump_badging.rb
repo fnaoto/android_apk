@@ -41,7 +41,7 @@ class AndroidApk
 
         # @return [String, NilClass] an application's min sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
         def min_sdk_version
-          @parsed_variables["sdkVersion"]
+          @parsed_variables["minSdkVersion"]
         end
 
         # @return [String, NilClass] an application's target sdk version. The format is an integer string which is defined in AndroidManifest.xml. Legacy apk may return nil.
@@ -88,13 +88,13 @@ class AndroidApk
         application
         application-label
         package
-        sdkVersion
+        minSdkVersion
         targetSdkVersion
       ).freeze
 
       NOT_ALLOW_DUPLICATE_TAG_NAMES = %w(
         application
-        sdkVersion
+        minSdkVersion
         targetSdkVersion
       ).freeze
 
