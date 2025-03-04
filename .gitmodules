@@ -1,0 +1,4 @@
+
+[submodule "spec/fixture"]
+	path = spec/fixture
+	url = git@github.com:fnaoto/android_apk_fixture.git
